@@ -1,0 +1,14 @@
+{
+  "description": "The same models on the same hours, fed Open-Meteo forecast-model data instead of the ERA5 data they learned from. Real events are ERA5's record, so this shows how sensitive the models are to their data source, not their true live accuracy.",
+  "period": "6 Sep to 28 Oct 2026",
+  "locations": "The 7 training towns",
+  "events": {
+    "rain": {"real_events": 989, "caught_era5": 0.83, "caught_open_meteo": 0.65},
+    "heavy_rain": {"real_events": 46, "caught_era5": 0.91, "caught_open_meteo": 0.57},
+    "flood_risk": {"real_events": 27, "caught_era5": 1.00, "caught_open_meteo": 0.15},
+    "hot": {"real_events": 589, "caught_era5": 0.89, "caught_open_meteo": 0.74},
+    "cold": {"real_events": 9, "caught_era5": 0.44, "caught_open_meteo": 0.56},
+    "sunny": {"real_events": 1639, "caught_era5": 0.90, "caught_open_meteo": 0.70},
+    "strong_wind": {"real_events": 619, "caught_era5": 0.80, "caught_open_meteo": 0.59}
+  }
+}

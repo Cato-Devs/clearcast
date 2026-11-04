@@ -18,6 +18,7 @@ from app.locations import LOCATIONS
 from app.predictor import NotEnoughData, load_bundle, predict_run
 
 BOUNDARIES = Path(__file__).resolve().parent / "nairobi_constituencies.geojson"
+MODELS_DIR = Path(__file__).resolve().parent.parent / "models"
 
 
 @asynccontextmanager
@@ -75,6 +76,15 @@ def locations():
 def boundaries():
     """Nairobi constituency boundaries as GeoJSON, for the map."""
     return json.loads(BOUNDARIES.read_text())
+
+
+@app.get("/report")
+def report():
+    """The evaluation from training, and the comparison of data sources."""
+    return {
+        "evaluation": json.loads((MODELS_DIR / "evaluation_report.json").read_text()),
+        "source_comparison": json.loads((MODELS_DIR / "source_comparison.json").read_text()),
+    }
 
 
 @app.get("/predict/{location}")

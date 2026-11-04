@@ -72,17 +72,24 @@ export function useAuth() {
     [finishLogin],
   );
 
-  const setHome = useCallback(
-    async (homeLocation) => {
+  /** A call that needs a login. An expired login logs out and says why, wherever it happens. */
+  const request = useCallback(
+    async (path, options = {}) => {
       try {
-        const body = { home_location: homeLocation };
-        setUser(await api("/api/me", { method: "PATCH", token, body }));
+        return await api(path, { ...options, token });
       } catch (e) {
-        if (e.status === 401) endSession();
-        else throw e;
+        if (e.status === 401 && token) endSession();
+        throw e;
       }
     },
     [token, endSession],
+  );
+
+  const setHome = useCallback(
+    async (homeLocation) => {
+      setUser(await request("/api/me", { method: "PATCH", body: { home_location: homeLocation } }));
+    },
+    [request],
   );
 
   const logout = useCallback(() => {
@@ -90,5 +97,5 @@ export function useAuth() {
     setSessionEnded(false);
   }, [clear]);
 
-  return { user, sessionEnded, login, register, logout, setHome };
+  return { token, user, sessionEnded, login, register, logout, setHome, request };
 }

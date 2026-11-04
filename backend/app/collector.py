@@ -2,22 +2,25 @@
 import logging
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
 
 import httpx
+from sqlalchemy import delete
 from sqlalchemy.dialects.postgresql import insert
 
+from app.alerts import process_always_alerts
 from app.config import ML_SERVICE_URL, POLL_INTERVAL_MINUTES
-from app.db import Prediction, SessionLocal
+from app.db import Collection, Prediction, PredictionSnapshot, SessionLocal
 
 log = logging.getLogger("uvicorn.error")
 
 PAUSE_BETWEEN_LOCATIONS_SECONDS = 0.5  # keeps the calls to Open-Meteo gentle
 RETRY_AFTER_FAILURE_SECONDS = 60
+KEEP_COLLECTIONS_DAYS = 14
 
 
-def save_run(run):
+def save_run(run, collection_id):
     """Store one location's prediction run. Re-running the same hour updates its rows."""
     issued_at = datetime.fromisoformat(run["issued_at"])
     rows = [
@@ -42,25 +45,61 @@ def save_run(run):
             for column in ("probability", "band", "valid_from", "valid_to", "model_version")
         },
     )
+    snapshots = [
+        PredictionSnapshot(
+            collection_id=collection_id,
+            location=row["location"],
+            event=row["event"],
+            issued_at=row["issued_at"],
+            band=row["band"],
+            probability=row["probability"],
+        )
+        for row in rows
+    ]
     with SessionLocal.begin() as session:
         session.execute(statement)
+        session.add_all(snapshots)
 
 
 def collect_once():
     """Collect every location. One location failing doesn't stop the others. Returns the number saved."""
+    with SessionLocal.begin() as session:
+        collection = Collection()
+        session.add(collection)
+        session.flush()
+        collection_id = collection.id
+
+    failed = []
     saved = 0
-    with httpx.Client(base_url=ML_SERVICE_URL, timeout=60) as client:
-        locations = client.get("/locations").raise_for_status().json()
-        for location in locations:
-            name = location["name"]
-            try:
-                save_run(client.get(f"/predict/{quote(name)}").raise_for_status().json())
-                saved += 1
-            except httpx.HTTPError as e:
-                log.warning("Could not get predictions for %s: %s", name, e)
-            time.sleep(PAUSE_BETWEEN_LOCATIONS_SECONDS)
-    log.info("Collected predictions for %d of %d locations", saved, len(locations))
+    total = 0
+    try:
+        with httpx.Client(base_url=ML_SERVICE_URL, timeout=60) as client:
+            locations = client.get("/locations").raise_for_status().json()
+            total = len(locations)
+            for location in locations:
+                name = location["name"]
+                try:
+                    save_run(client.get(f"/predict/{quote(name)}").raise_for_status().json(), collection_id)
+                    saved += 1
+                except httpx.HTTPError as e:
+                    failed.append(name)
+                    log.warning("Could not get predictions for %s: %s", name, e)
+                time.sleep(PAUSE_BETWEEN_LOCATIONS_SECONDS)
+    finally:
+        with SessionLocal.begin() as session:
+            collection = session.get(Collection, collection_id)
+            collection.finished_at = datetime.now(timezone.utc)
+            collection.total = total
+            collection.saved = saved
+            collection.failed = failed
+    log.info("Collected predictions for %d of %d locations", saved, total)
     return saved
+
+
+def remove_old_collections():
+    cutoff = datetime.now(timezone.utc) - timedelta(days=KEEP_COLLECTIONS_DAYS)
+    with SessionLocal.begin() as session:
+        session.execute(delete(Collection).where(Collection.started_at < cutoff))
 
 
 def run_forever(stop):
@@ -68,6 +107,9 @@ def run_forever(stop):
     while not stop.is_set():
         try:
             saved = collect_once()
+            if saved:
+                process_always_alerts()
+            remove_old_collections()
         except Exception:
             # Keep the schedule alive through any failure, such as the database restarting
             log.exception("Collection run failed")

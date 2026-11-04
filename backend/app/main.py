@@ -5,22 +5,31 @@ from datetime import timezone
 from fastapi import FastAPI
 from sqlalchemy import select, text
 
+from app.admin_api import router as admin_router
+from app.alerts import start_alert_loop
+from app.alerts_api import router as alerts_router
 from app.auth import router as auth_router
+from app.auth import seed_admin
 from app.collector import start_collector
-from app.db import Base, Prediction, SessionLocal, engine
+from app.db import Prediction, SessionLocal, create_tables
 from app.ml_client import static_ml_data
 
 
 @asynccontextmanager
 async def lifespan(app):
-    Base.metadata.create_all(engine)
+    create_tables()
+    seed_admin()
     stop_collector = start_collector()
+    stop_alerts = start_alert_loop()
     yield
     stop_collector.set()
+    stop_alerts.set()
 
 
 app = FastAPI(title="ClearCast API", lifespan=lifespan)
 app.include_router(auth_router)
+app.include_router(alerts_router)
+app.include_router(admin_router)
 
 
 def utc_text(moment):
@@ -42,6 +51,24 @@ def locations():
 @app.get("/api/boundaries")
 def boundaries():
     return static_ml_data("/boundaries")
+
+
+@app.get("/api/about")
+def about():
+    """The public summary of how well the models perform, for the About page."""
+    report = static_ml_data("/report")
+    keep = ("recall", "precision", "f1", "positives")
+    return {
+        "events": {
+            event: {
+                "test": {key: result["test"][key] for key in keep},
+                "final": {key: result["final"][key] for key in keep},
+            }
+            for event, result in report["evaluation"].items()
+            if event != "storm"  # evaluated, but not offered as an alert
+        },
+        "source_comparison": report["source_comparison"],
+    }
 
 
 @app.get("/api/predictions/latest")

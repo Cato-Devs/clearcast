@@ -7,7 +7,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY training/ training/
 COPY app/ app/
-COPY models/clearcast_models.joblib models/
+COPY models/clearcast_models.joblib models/evaluation_report.json models/source_comparison.json models/
 
 RUN useradd --create-home clearcast
 USER clearcast

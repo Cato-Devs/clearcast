@@ -17,6 +17,15 @@ services:
       retries: 20
     restart: unless-stopped
 
+  redis:
+    image: redis:8-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
   ml-service:
     build: ./ml-service
     healthcheck:
@@ -34,8 +43,17 @@ services:
       POLL_INTERVAL_MINUTES: ${POLL_INTERVAL_MINUTES}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES}
+      REDIS_URL: ${REDIS_URL}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       ml-service:
         condition: service_healthy
