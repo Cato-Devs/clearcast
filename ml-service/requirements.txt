@@ -1,0 +1,11 @@
+# What the running ML service needs (Docker image: python:3.15-slim).
+# Exact versions: saved models may not load under a different scikit-learn version.
+fastapi==0.162.0
+uvicorn==0.54.0
+requests==2.34.2
+pandas==3.0.6
+numpy==2.5.4
+scipy==1.18.1
+scikit-learn==1.9.1
+joblib==1.6.0
+truststore==0.10.5
