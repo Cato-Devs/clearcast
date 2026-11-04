@@ -4,7 +4,7 @@ Downloads hourly ERA5 reanalysis weather (Hersbach et al., 2020) for every locat
 locations.py through the Open-Meteo archive API (free, no API key).
 
 Run from the ml-service folder:
-    python -m training.fetch_historical              # 2010-2025
+    python -m training.fetch_historical              # 2010-2026
     python -m training.fetch_historical --start 2020 --end 2021
 
 Downloads are cached per location/year in data/raw/chunks/, so if the script stops
@@ -102,7 +102,7 @@ def summarise(df):
 def main():
     ap = argparse.ArgumentParser(description="Download ERA5 hourly history for ClearCast locations")
     ap.add_argument("--start", type=int, default=2010)
-    ap.add_argument("--end", type=int, default=2025)
+    ap.add_argument("--end", type=int, default=2026)
     args = ap.parse_args()
 
     CHUNK_DIR.mkdir(parents=True, exist_ok=True)

@@ -1,7 +1,10 @@
-requests>=2.31
-pandas>=2.2
-numpy>=1.26
-scikit-learn>=1.5
-joblib>=1.4
-matplotlib>=3.8
-truststore>=0.9
+# Python 3.15. Docker image for the ML service: python:3.15-slim
+# Exact versions: saved models may not load under a different scikit-learn version.
+requests==2.34.2
+pandas==3.0.6
+numpy==2.5.4
+scipy==1.18.1
+scikit-learn==1.9.1
+joblib==1.6.0
+matplotlib==3.11.2
+truststore==0.10.5

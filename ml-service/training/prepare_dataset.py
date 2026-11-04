@@ -4,7 +4,7 @@ Turns data/raw/historical_hourly.csv into a model-ready dataset:
   1. clean each location's hourly series                    (features.clean)
   2. engineer features from the current and past hours      (features.build_features)
   3. give every hour a yes/no target per weather event, based on the FOLLOWING hours
-  4. split by date into train / validation / test
+  4. split by date into train / validation / test / final
 
 Run from the ml-service folder:
     python -m training.prepare_dataset
@@ -42,22 +42,26 @@ SUNNY_CLOUD_PCT = 30  # sunny: average cloud cover in the next 6 h
 STRONG_GUST_MS = 12  # strong_wind: strongest gust in the next 6 h (~43 km/h)
 STORM_RAIN_6H_MM = 3  # storm: strong gusts together with at least this much rain
 
-# Chronological three-way holdout. The test period contains the 2023 El Nino floods
-# and the April-May 2024 floods.
+# Chronological holdout. The test period contains the 2023 El Nino floods and the April-May
+# 2024 floods. Test results influenced the choice of the "likely" cut-off, so 2026 is kept
+# as the final holdout: nothing may be changed after seeing its results.
 TRAIN_END = pd.Timestamp("2021-12-31 23:00")
 VAL_END = pd.Timestamp("2022-12-31 23:00")
+TEST_END = pd.Timestamp("2025-12-31 23:00")
+SPLITS = ["train", "val", "test", "final"]
 
 
 def next_hours(s, hours, how):
     """sum/max/min/mean of the `hours` values AFTER each timestamp (t+1 .. t+hours)."""
-    return getattr(s[::-1].rolling(hours), how)()[::-1].shift(-1)
+    # Rounded because rolling sums drift by ~1e-14, which flips labels sitting exactly on a threshold
+    return getattr(s[::-1].rolling(hours), how)()[::-1].shift(-1).round(6)
 
 
 def make_targets(g):
     rain6 = next_hours(g.rainfall, 6, "sum")
     rain24 = next_hours(g.rainfall, 24, "sum")
     gust6 = next_hours(g.wind_gust, 6, "max")
-    past48 = g.rainfall.rolling(48).sum()
+    past48 = g.rainfall.rolling(48).sum().round(6)
 
     targets = pd.DataFrame(
         {
@@ -77,9 +81,9 @@ def make_targets(g):
 
 def report(df):
     print(f"Saved {len(df):,} rows x {df.shape[1]} columns to {OUTPUT}\n")
-    print("Rows per split:", df.split.value_counts().reindex(["train", "val", "test"]).to_dict())
+    print("Rows per split:", df.split.value_counts().reindex(SPLITS).to_dict())
     print("\nHow often each event happens, % of hours per split:")
-    print((100 * df.groupby("split")[EVENTS].mean()).reindex(["train", "val", "test"]).T.round(2).to_string())
+    print((100 * df.groupby("split")[EVENTS].mean()).reindex(SPLITS).T.round(2).to_string())
     print("\nHow often each event happens, % of hours per location:")
     print((100 * df.groupby("location")[EVENTS].mean()).T.round(2).to_string())
 
@@ -99,6 +103,7 @@ def main():
     df["split"] = "train"
     df.loc[df.timestamp > TRAIN_END, "split"] = "val"
     df.loc[df.timestamp > VAL_END, "split"] = "test"
+    df.loc[df.timestamp > TEST_END, "split"] = "final"
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(OUTPUT, index=False, float_format="%.3f")

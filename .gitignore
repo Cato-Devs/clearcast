@@ -6,3 +6,4 @@ node_modules/
 dist/
 data/
 .ipynb_checkpoints/
+ml-service/models/*.joblib

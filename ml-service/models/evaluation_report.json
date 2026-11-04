@@ -1,0 +1,652 @@
+{
+  "rain": {
+    "model_type": "random_forest",
+    "comparison": {
+      "random_forest": {
+        "params": {
+          "max_depth": 16,
+          "min_samples_leaf": 10
+        },
+        "cv_ap": 0.7099794836154854,
+        "val_ap": 0.714486140738981
+      },
+      "decision_tree": {
+        "params": {
+          "max_depth": 14,
+          "min_samples_leaf": 100
+        },
+        "cv_ap": 0.6567586282051503,
+        "val_ap": 0.6651642557628928
+      }
+    },
+    "cutoffs": {
+      "unlikely": 0.2198005789574503,
+      "likely": 0.4396011579149006,
+      "very_likely": 0.8655970696182659,
+      "very_likely_precision_reached": true
+    },
+    "test": {
+      "positives": 26172,
+      "accuracy": 0.8113703510601321,
+      "precision": 0.42425046900994656,
+      "recall": 0.9159024912119823,
+      "f1": 0.5798921063454049,
+      "auc_roc": 0.9358295156781019,
+      "very_likely_precision": 0.8153025157668584,
+      "meets_targets": false
+    },
+    "final": {
+      "positives": 6455,
+      "accuracy": 0.8229960317460318,
+      "precision": 0.4122669702575779,
+      "recall": 0.8975987606506584,
+      "f1": 0.5650202350187723,
+      "auc_roc": 0.9330227039838105,
+      "very_likely_precision": 0.7978593272171254,
+      "meets_targets": false
+    },
+    "baselines": {
+      "test": {
+        "same_as_6h_ago": {
+          "precision": 0.479516967288291,
+          "recall": 0.47944368026898976,
+          "f1": 0.47948032097821935
+        },
+        "same_as_24h_ago": {
+          "precision": 0.48329510703363915,
+          "recall": 0.48307351367874063,
+          "f1": 0.48318428494993504
+        }
+      },
+      "final": {
+        "same_as_6h_ago": {
+          "precision": 0.46283679157633945,
+          "recall": 0.46305189775367933,
+          "f1": 0.46294431967784405
+        },
+        "same_as_24h_ago": {
+          "precision": 0.47207095067683214,
+          "recall": 0.4700232378001549,
+          "f1": 0.4710448688091911
+        }
+      }
+    },
+    "top_features": {
+      "rain_sum_24h": 0.168,
+      "rain_sum_48h": 0.152,
+      "rainfall": 0.108,
+      "rain_sum_3h": 0.092,
+      "rain_sum_6h": 0.058
+    }
+  },
+  "heavy_rain": {
+    "model_type": "random_forest",
+    "comparison": {
+      "random_forest": {
+        "params": {
+          "max_depth": 16,
+          "min_samples_leaf": 10
+        },
+        "cv_ap": 0.28603466333837013,
+        "val_ap": 0.31481821541750415
+      },
+      "decision_tree": {
+        "params": {
+          "max_depth": 14,
+          "min_samples_leaf": 100
+        },
+        "cv_ap": 0.19909741486582982,
+        "val_ap": 0.2413191504886841
+      }
+    },
+    "cutoffs": {
+      "unlikely": 0.23738781703387934,
+      "likely": 0.4747756340677587,
+      "very_likely": 0.9892374729843441,
+      "very_likely_precision_reached": true
+    },
+    "test": {
+      "positives": 1946,
+      "accuracy": 0.9339372610358012,
+      "precision": 0.12323008849557522,
+      "recall": 0.8586844809866393,
+      "f1": 0.21552947246227266,
+      "auc_roc": 0.9660732353491803,
+      "very_likely_precision": 0.4444444444444444,
+      "meets_targets": false
+    },
+    "final": {
+      "positives": 454,
+      "accuracy": 0.941468253968254,
+      "precision": 0.12135922330097088,
+      "recall": 0.8810572687224669,
+      "f1": 0.21333333333333335,
+      "auc_roc": 0.9751766268803789,
+      "very_likely_precision": 0.6666666666666666,
+      "meets_targets": false
+    },
+    "baselines": {
+      "test": {
+        "same_as_6h_ago": {
+          "precision": 0.16546762589928057,
+          "recall": 0.16546762589928057,
+          "f1": 0.16546762589928057
+        },
+        "same_as_24h_ago": {
+          "precision": 0.131551901336074,
+          "recall": 0.131551901336074,
+          "f1": 0.131551901336074
+        }
+      },
+      "final": {
+        "same_as_6h_ago": {
+          "precision": 0.1762114537444934,
+          "recall": 0.1762114537444934,
+          "f1": 0.1762114537444934
+        },
+        "same_as_24h_ago": {
+          "precision": 0.14317180616740088,
+          "recall": 0.14317180616740088,
+          "f1": 0.14317180616740088
+        }
+      }
+    },
+    "top_features": {
+      "rain_sum_48h": 0.169,
+      "rain_sum_24h": 0.166,
+      "rainfall": 0.106,
+      "rain_sum_3h": 0.063,
+      "rain_sum_6h": 0.055
+    }
+  },
+  "flood_risk": {
+    "model_type": "random_forest",
+    "comparison": {
+      "random_forest": {
+        "params": {
+          "max_depth": 16,
+          "min_samples_leaf": 10
+        },
+        "cv_ap": 0.4866397737746201,
+        "val_ap": 0.43890723261284004
+      },
+      "decision_tree": {
+        "params": {
+          "max_depth": 10,
+          "min_samples_leaf": 100
+        },
+        "cv_ap": 0.3999651362819775,
+        "val_ap": 0.3617717711907556
+      }
+    },
+    "cutoffs": {
+      "unlikely": 0.10044651948796555,
+      "likely": 0.2008930389759311,
+      "very_likely": 0.9882867762149758,
+      "very_likely_precision_reached": true
+    },
+    "test": {
+      "positives": 2694,
+      "accuracy": 0.92539429092805,
+      "precision": 0.15574537065901864,
+      "recall": 0.9272457312546399,
+      "f1": 0.26669513692414454,
+      "auc_roc": 0.9725424081477629,
+      "very_likely_precision": 0.8143322475570033,
+      "meets_targets": false
+    },
+    "final": {
+      "positives": 558,
+      "accuracy": 0.9372817460317461,
+      "precision": 0.1439124487004104,
+      "recall": 0.942652329749104,
+      "f1": 0.24970329931165441,
+      "auc_roc": 0.9761020991206764,
+      "very_likely_precision": 0.75,
+      "meets_targets": false
+    },
+    "baselines": {
+      "test": {
+        "same_as_24h_ago": {
+          "precision": 0.41573867854491464,
+          "recall": 0.41573867854491464,
+          "f1": 0.41573867854491464
+        }
+      },
+      "final": {
+        "same_as_24h_ago": {
+          "precision": 0.3602150537634409,
+          "recall": 0.3602150537634409,
+          "f1": 0.3602150537634409
+        }
+      }
+    },
+    "top_features": {
+      "rain_sum_48h": 0.344,
+      "rain_sum_24h": 0.244,
+      "rain_sum_6h": 0.064,
+      "rain_sum_3h": 0.047,
+      "temp_mean_24h": 0.044
+    },
+    "flood_periods": [
+      {
+        "period": "2023 El Nino short rains",
+        "location": "Kisumu",
+        "flood_hours": 273,
+        "caught": 1.0
+      },
+      {
+        "period": "2023 El Nino short rains",
+        "location": "Mombasa",
+        "flood_hours": 40,
+        "caught": 0.675
+      },
+      {
+        "period": "2024 long-rains floods",
+        "location": "Nairobi",
+        "flood_hours": 52,
+        "caught": 0.9038461538461539
+      }
+    ]
+  },
+  "hot": {
+    "model_type": "random_forest",
+    "comparison": {
+      "random_forest": {
+        "params": {
+          "max_depth": 16,
+          "min_samples_leaf": 10
+        },
+        "cv_ap": 0.9393172386694513,
+        "val_ap": 0.94578641349146
+      },
+      "decision_tree": {
+        "params": {
+          "max_depth": 14,
+          "min_samples_leaf": 100
+        },
+        "cv_ap": 0.8969817309572523,
+        "val_ap": 0.9204488714170165
+      }
+    },
+    "cutoffs": {
+      "unlikely": 0.4442340971470532,
+      "likely": 0.8884681942941064,
+      "very_likely": 0.8884681942941064,
+      "very_likely_precision_reached": true
+    },
+    "test": {
+      "positives": 12161,
+      "accuracy": 0.9827565606534585,
+      "precision": 0.873172757475083,
+      "recall": 0.8644848285502837,
+      "f1": 0.8688070740878476,
+      "auc_roc": 0.9961435719815838,
+      "very_likely_precision": 0.873172757475083,
+      "meets_targets": true
+    },
+    "final": {
+      "positives": 3458,
+      "accuracy": 0.9850595238095238,
+      "precision": 0.8997930830623707,
+      "recall": 0.8802776171197224,
+      "f1": 0.8899283730448765,
+      "auc_roc": 0.9971104651768808,
+      "very_likely_precision": 0.8997930830623707,
+      "meets_targets": true
+    },
+    "baselines": {
+      "test": {
+        "same_as_6h_ago": {
+          "precision": 0.39116848943343474,
+          "recall": 0.39116848943343474,
+          "f1": 0.39116848943343474
+        },
+        "same_as_24h_ago": {
+          "precision": 0.8101307458268234,
+          "recall": 0.8101307458268234,
+          "f1": 0.8101307458268234
+        }
+      },
+      "final": {
+        "same_as_6h_ago": {
+          "precision": 0.384037015615963,
+          "recall": 0.384037015615963,
+          "f1": 0.384037015615963
+        },
+        "same_as_24h_ago": {
+          "precision": 0.842803576579175,
+          "recall": 0.8449971081550028,
+          "f1": 0.8438989169675091
+        }
+      }
+    },
+    "top_features": {
+      "temp_mean_24h": 0.265,
+      "temperature": 0.142,
+      "temp_mean_6h": 0.084,
+      "temp_mean_3h": 0.082,
+      "temp_change_3h": 0.069
+    }
+  },
+  "cold": {
+    "model_type": "random_forest",
+    "comparison": {
+      "random_forest": {
+        "params": {
+          "max_depth": 16,
+          "min_samples_leaf": 10
+        },
+        "cv_ap": 0.6650523757479745,
+        "val_ap": 0.6520798351869387
+      },
+      "decision_tree": {
+        "params": {
+          "max_depth": 14,
+          "min_samples_leaf": 100
+        },
+        "cv_ap": 0.64953904809178,
+        "val_ap": 0.6337048624685221
+      }
+    },
+    "cutoffs": {
+      "unlikely": 0.3173303461104663,
+      "likely": 0.6346606922209326,
+      "very_likely": 0.9644943562617342,
+      "very_likely_precision_reached": true
+    },
+    "test": {
+      "positives": 2020,
+      "accuracy": 0.9755278936392076,
+      "precision": 0.3000964940495336,
+      "recall": 0.9237623762376238,
+      "f1": 0.45302257829570286,
+      "auc_roc": 0.9928016249524001,
+      "very_likely_precision": 0.8021857923497268,
+      "meets_targets": false
+    },
+    "final": {
+      "positives": 422,
+      "accuracy": 0.9766666666666667,
+      "precision": 0.2542372881355932,
+      "recall": 0.9241706161137441,
+      "f1": 0.3987730061349693,
+      "auc_roc": 0.9931237991161609,
+      "very_likely_precision": 0.7965116279069767,
+      "meets_targets": false
+    },
+    "baselines": {
+      "test": {
+        "same_as_6h_ago": {
+          "precision": 0.22485207100591717,
+          "recall": 0.22574257425742575,
+          "f1": 0.22529644268774704
+        },
+        "same_as_24h_ago": {
+          "precision": 0.4163805787150564,
+          "recall": 0.4202970297029703,
+          "f1": 0.41832963784183297
+        }
+      },
+      "final": {
+        "same_as_6h_ago": {
+          "precision": 0.21800947867298578,
+          "recall": 0.21800947867298578,
+          "f1": 0.21800947867298578
+        },
+        "same_as_24h_ago": {
+          "precision": 0.3696682464454976,
+          "recall": 0.3696682464454976,
+          "f1": 0.3696682464454976
+        }
+      }
+    },
+    "top_features": {
+      "temperature": 0.225,
+      "temp_mean_3h": 0.191,
+      "temp_mean_6h": 0.125,
+      "temp_mean_24h": 0.11,
+      "temp_change_3h": 0.068
+    }
+  },
+  "sunny": {
+    "model_type": "random_forest",
+    "comparison": {
+      "random_forest": {
+        "params": {
+          "max_depth": 16,
+          "min_samples_leaf": 10
+        },
+        "cv_ap": 0.7471580663034965,
+        "val_ap": 0.7603809813611662
+      },
+      "decision_tree": {
+        "params": {
+          "max_depth": 10,
+          "min_samples_leaf": 100
+        },
+        "cv_ap": 0.7276766021812959,
+        "val_ap": 0.7434830435461891
+      }
+    },
+    "cutoffs": {
+      "unlikely": 0.2011221950012172,
+      "likely": 0.4022443900024344,
+      "very_likely": 0.8153791428852527,
+      "very_likely_precision_reached": true
+    },
+    "test": {
+      "positives": 44157,
+      "accuracy": 0.8045653023983316,
+      "precision": 0.5569302792175221,
+      "recall": 0.9052245397105781,
+      "f1": 0.6895944931811713,
+      "auc_roc": 0.9212182344125559,
+      "very_likely_precision": 0.8098727210182318,
+      "meets_targets": false
+    },
+    "final": {
+      "positives": 11951,
+      "accuracy": 0.7985714285714286,
+      "precision": 0.5451352300667369,
+      "recall": 0.9090452681783951,
+      "f1": 0.681555834378921,
+      "auc_roc": 0.9224518130907496,
+      "very_likely_precision": 0.8133906633906633,
+      "meets_targets": false
+    },
+    "baselines": {
+      "test": {
+        "same_as_6h_ago": {
+          "precision": 0.5888516724754447,
+          "recall": 0.5892383993477818,
+          "f1": 0.5890449724369786
+        },
+        "same_as_24h_ago": {
+          "precision": 0.5075956234740935,
+          "recall": 0.5085037479901261,
+          "f1": 0.5080492799203556
+        }
+      },
+      "final": {
+        "same_as_6h_ago": {
+          "precision": 0.5868509212730318,
+          "recall": 0.5863107689733077,
+          "f1": 0.5865807207735131
+        },
+        "same_as_24h_ago": {
+          "precision": 0.4776344446305914,
+          "recall": 0.47711488578361644,
+          "f1": 0.477374523839424
+        }
+      }
+    },
+    "top_features": {
+      "cloud_cover": 0.528,
+      "rain_sum_24h": 0.055,
+      "rain_sum_48h": 0.04,
+      "humidity_mean_6h": 0.029,
+      "temp_mean_24h": 0.028
+    }
+  },
+  "strong_wind": {
+    "model_type": "random_forest",
+    "comparison": {
+      "random_forest": {
+        "params": {
+          "max_depth": 16,
+          "min_samples_leaf": 10
+        },
+        "cv_ap": 0.9040343620616547,
+        "val_ap": 0.8719552524995139
+      },
+      "decision_tree": {
+        "params": {
+          "max_depth": 14,
+          "min_samples_leaf": 100
+        },
+        "cv_ap": 0.8732331542707387,
+        "val_ap": 0.8425488253662713
+      }
+    },
+    "cutoffs": {
+      "unlikely": 0.3274121965238101,
+      "likely": 0.6548243930476202,
+      "very_likely": 0.8497648758380484,
+      "very_likely_precision_reached": true
+    },
+    "test": {
+      "positives": 12626,
+      "accuracy": 0.9556504171011471,
+      "precision": 0.6218312937062938,
+      "recall": 0.9014731506415333,
+      "f1": 0.735984481086324,
+      "auc_roc": 0.9858195015634574,
+      "very_likely_precision": 0.7803486783964008,
+      "meets_targets": false
+    },
+    "final": {
+      "positives": 3739,
+      "accuracy": 0.9549603174603175,
+      "precision": 0.6406818617123157,
+      "recall": 0.8946242310778283,
+      "f1": 0.7466517857142857,
+      "auc_roc": 0.9847489256026402,
+      "very_likely_precision": 0.7974993204675184,
+      "meets_targets": false
+    },
+    "baselines": {
+      "test": {
+        "same_as_6h_ago": {
+          "precision": 0.4652304767939173,
+          "recall": 0.4652304767939173,
+          "f1": 0.4652304767939173
+        },
+        "same_as_24h_ago": {
+          "precision": 0.65684493245912,
+          "recall": 0.6585616980833201,
+          "f1": 0.6577021949772592
+        }
+      },
+      "final": {
+        "same_as_6h_ago": {
+          "precision": 0.4715164482481947,
+          "recall": 0.4715164482481947,
+          "f1": 0.4715164482481947
+        },
+        "same_as_24h_ago": {
+          "precision": 0.6651511099224392,
+          "recall": 0.6651511099224392,
+          "f1": 0.6651511099224392
+        }
+      }
+    },
+    "top_features": {
+      "wind_speed": 0.222,
+      "wind_gust": 0.155,
+      "gust_max_6h": 0.142,
+      "wind_dir_cos": 0.063,
+      "hour_sin": 0.062
+    }
+  },
+  "storm": {
+    "model_type": "random_forest",
+    "comparison": {
+      "random_forest": {
+        "params": {
+          "max_depth": 16,
+          "min_samples_leaf": 10
+        },
+        "cv_ap": 0.10151010787113149,
+        "val_ap": 0.24998610745525876
+      },
+      "decision_tree": {
+        "params": {
+          "max_depth": 14,
+          "min_samples_leaf": 100
+        },
+        "cv_ap": 0.08168878341077901,
+        "val_ap": 0.07813978431143156
+      }
+    },
+    "cutoffs": {
+      "unlikely": 0.1644779533610042,
+      "likely": 0.3289559067220084,
+      "very_likely": 0.9936886941698467,
+      "very_likely_precision_reached": true
+    },
+    "test": {
+      "positives": 113,
+      "accuracy": 0.9680548314216197,
+      "precision": 0.013493000505987519,
+      "recall": 0.7079646017699115,
+      "f1": 0.026481297583581597,
+      "auc_roc": 0.9712839156292329,
+      "very_likely_precision": 0.5,
+      "meets_targets": false
+    },
+    "final": {
+      "positives": 12,
+      "accuracy": 0.9705555555555555,
+      "precision": 0.004710632570659489,
+      "recall": 0.5833333333333334,
+      "f1": 0.009345794392523364,
+      "auc_roc": 0.9717823026646557,
+      "very_likely_precision": 0.0,
+      "meets_targets": false
+    },
+    "baselines": {
+      "test": {
+        "same_as_6h_ago": {
+          "precision": 0.017699115044247787,
+          "recall": 0.017699115044247787,
+          "f1": 0.017699115044247787
+        },
+        "same_as_24h_ago": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        }
+      },
+      "final": {
+        "same_as_6h_ago": {
+          "precision": 0.08333333333333333,
+          "recall": 0.08333333333333333,
+          "f1": 0.08333333333333333
+        },
+        "same_as_24h_ago": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        }
+      }
+    },
+    "top_features": {
+      "wind_gust": 0.123,
+      "rain_sum_48h": 0.089,
+      "rain_sum_3h": 0.07,
+      "rainfall": 0.068,
+      "rain_sum_24h": 0.062
+    }
+  }
+}
