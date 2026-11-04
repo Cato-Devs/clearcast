@@ -32,6 +32,8 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       ML_SERVICE_URL: ${ML_SERVICE_URL}
       POLL_INTERVAL_MINUTES: ${POLL_INTERVAL_MINUTES}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES}
     depends_on:
       db:
         condition: service_healthy

@@ -1,15 +1,14 @@
 """ClearCast backend API. Interactive API docs are at /docs when it is running."""
 from contextlib import asynccontextmanager
 from datetime import timezone
-from functools import lru_cache
 
-import httpx
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from sqlalchemy import select, text
 
+from app.auth import router as auth_router
 from app.collector import start_collector
-from app.config import ML_SERVICE_URL
 from app.db import Base, Prediction, SessionLocal, engine
+from app.ml_client import static_ml_data
 
 
 @asynccontextmanager
@@ -21,22 +20,11 @@ async def lifespan(app):
 
 
 app = FastAPI(title="ClearCast API", lifespan=lifespan)
+app.include_router(auth_router)
 
 
 def utc_text(moment):
     return moment.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
-@lru_cache(maxsize=None)  # these never change while the service runs; failures aren't cached
-def fetch_from_ml_service(path):
-    return httpx.get(f"{ML_SERVICE_URL}{path}", timeout=30).raise_for_status().json()
-
-
-def static_ml_data(path):
-    try:
-        return fetch_from_ml_service(path)
-    except httpx.HTTPError:
-        raise HTTPException(status_code=503, detail="The ML service is not available.")
 
 
 @app.get("/api/health")

@@ -1,7 +1,7 @@
 """Database connection and tables."""
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, Integer, String, UniqueConstraint, create_engine
+from sqlalchemy import DateTime, Float, Integer, String, UniqueConstraint, create_engine, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
 from app.config import DATABASE_URL
@@ -34,3 +34,13 @@ class Prediction(Base):
     valid_from: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     valid_to: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     model_version: Mapped[str] = mapped_column(String(32))
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    email: Mapped[str] = mapped_column(String(254), unique=True)  # stored in lower case
+    password_hash: Mapped[str] = mapped_column(String(255))  # never the password itself
+    home_location: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

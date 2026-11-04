@@ -1,15 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
+import { api } from "./api.js";
+import AuthDialog from "./AuthDialog.jsx";
 import NairobiMap from "./NairobiMap.jsx";
+import { useAuth } from "./useAuth.js";
 import { BANDS, displayBand, EVENTS, formatEat, isCurrent, NO_DATA } from "./weather.js";
 
 const REFRESH_MS = 5 * 60 * 1000;
 const RETRY_MS = 30 * 1000;
-
-async function getJson(path) {
-  const response = await fetch(path);
-  if (!response.ok) throw new Error(`${path} returned ${response.status}`);
-  return response.json();
-}
 
 function Band({ band }) {
   return (
@@ -36,7 +33,14 @@ function EventPicker({ event, onChange }) {
   return (
     <div className="events" role="group" aria-label="Weather event shown">
       {EVENTS.map((e) => (
-        <button key={e.id} type="button" aria-pressed={e.id === event} onClick={() => onChange(e.id)}>
+        <button
+          key={e.id}
+          type="button"
+          className={`event-${e.id}`}
+          aria-pressed={e.id === event}
+          onClick={() => onChange(e.id)}
+        >
+          <span className="event-dot" aria-hidden="true" />
           {e.label}
         </button>
       ))}
@@ -44,16 +48,57 @@ function EventPicker({ event, onChange }) {
   );
 }
 
-function LocationDetail({ name, run, event, onEvent }) {
+function HomeControl({ name, user, onSetHome, onLogin }) {
+  const [saving, setSaving] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  if (!user) {
+    return (
+      <button type="button" className="link" onClick={onLogin}>
+        Log in to save a home location
+      </button>
+    );
+  }
+  if (user.home_location === name) return <span className="home-tag">Your home location</span>;
+
+  const save = async () => {
+    setSaving(true);
+    setFailed(false);
+    try {
+      await onSetHome(name);
+    } catch {
+      setFailed(true);
+    }
+    setSaving(false);
+  };
+
+  return (
+    <span className="home-control">
+      {failed && (
+        <small role="alert" className="form-error">
+          Couldn't save. Try again.
+        </small>
+      )}
+      <button type="button" className="button" disabled={saving} onClick={save}>
+        Set as home
+      </button>
+    </span>
+  );
+}
+
+function LocationDetail({ name, run, event, onEvent, user, onSetHome, onLogin }) {
   return (
     <section className="card detail" aria-labelledby="detail-title">
-      <h2 id="detail-title">{name}</h2>
+      <div className="detail-head">
+        <h2 id="detail-title">{name}</h2>
+        <HomeControl key={name} name={name} user={user} onSetHome={onSetHome} onLogin={onLogin} />
+      </div>
       <ul>
         {EVENTS.map((e) => {
           const band = displayBand(run, e.id);
           const prediction = run?.predictions.find((p) => p.event === e.id);
           return (
-            <li key={e.id}>
+            <li key={e.id} className={`event-${e.id}`}>
               <button type="button" aria-pressed={e.id === event} onClick={() => onEvent(e.id)}>
                 <span className="detail-name">
                   <strong>{e.label}</strong>
@@ -72,9 +117,9 @@ function LocationDetail({ name, run, event, onEvent }) {
   );
 }
 
-function LocationTable({ title, locations, runs, event, selected, onSelect }) {
+function LocationTable({ title, locations, runs, event, selected, onSelect, home }) {
   return (
-    <section className="card">
+    <section className={`card event-${event}`}>
       <h2>{title}</h2>
       <table>
         <thead>
@@ -90,6 +135,7 @@ function LocationTable({ title, locations, runs, event, selected, onSelect }) {
                 <button type="button" className="link" onClick={() => onSelect(name)}>
                   {name}
                 </button>
+                {name === home && <span className="home-tag"> Home</span>}
               </td>
               <td>
                 <Band band={displayBand(runs[name], event)} />
@@ -109,6 +155,14 @@ export default function App() {
   const [locations, setLocations] = useState([]);
   const [runList, setRunList] = useState(null);
   const [failed, setFailed] = useState(false);
+  const [authMode, setAuthMode] = useState(null); // null, "login" or "register"
+  const auth = useAuth();
+  const home = auth.user?.home_location ?? null;
+
+  // Show someone their home location when they log in or come back
+  useEffect(() => {
+    if (home) setSelected(home);
+  }, [home]);
 
   useEffect(() => {
     let active = true;
@@ -119,9 +173,9 @@ export default function App() {
     const load = async () => {
       let complete = false;
       try {
-        geo ??= await getJson("/api/boundaries");
-        places ??= await getJson("/api/locations");
-        const runs = await getJson("/api/predictions/latest");
+        geo ??= await api("/api/boundaries");
+        places ??= await api("/api/locations");
+        const runs = await api("/api/predictions/latest");
         if (!active) return;
         setBoundaries(geo);
         setLocations(places);
@@ -165,12 +219,32 @@ export default function App() {
       <header>
         <h1>ClearCast</h1>
         <p className="updated">{latestIssue ? `Weather data to ${formatEat(latestIssue)} EAT` : "Waiting for data"}</p>
+        <div className="account">
+          {auth.user ? (
+            <>
+              <span className="account-email">{auth.user.email}</span>
+              <button type="button" className="button" onClick={auth.logout}>
+                Log out
+              </button>
+            </>
+          ) : (
+            <>
+              <button type="button" className="button" onClick={() => setAuthMode("login")}>
+                Log in
+              </button>
+              <button type="button" className="button primary" onClick={() => setAuthMode("register")}>
+                Sign up
+              </button>
+            </>
+          )}
+        </div>
       </header>
 
-      <p className="notice">
-        <strong>Prototype.</strong> These likelihoods have not been validated on live weather data. Don't rely on them
-        for safety decisions. Follow official Kenya Meteorological Department warnings.
-      </p>
+      {auth.sessionEnded && (
+        <p className="notice" role="status">
+          Your login has expired. Log in again to use your account.
+        </p>
+      )}
 
       {failed && (
         <p className="notice error" role="alert">
@@ -185,7 +259,7 @@ export default function App() {
       <EventPicker event={event} onChange={setEvent} />
 
       <div className="layout">
-        <section className="card map-card" aria-labelledby="map-title">
+        <section className={`card map-card event-${event}`} aria-labelledby="map-title">
           <h2 id="map-title">{eventInfo.label} across Nairobi</h2>
           <p className="hint">{eventInfo.detail}</p>
           <div className="map">
@@ -204,7 +278,15 @@ export default function App() {
           <Legend />
         </section>
 
-        <LocationDetail name={selected} run={runs[selected]} event={event} onEvent={setEvent} />
+        <LocationDetail
+          name={selected}
+          run={runs[selected]}
+          event={event}
+          onEvent={setEvent}
+          user={auth.user}
+          onSetHome={auth.setHome}
+          onLogin={() => setAuthMode("login")}
+        />
       </div>
 
       <div className="tables">
@@ -215,6 +297,7 @@ export default function App() {
           event={event}
           selected={selected}
           onSelect={setSelected}
+          home={home}
         />
         <LocationTable
           title="Other towns"
@@ -223,8 +306,20 @@ export default function App() {
           event={event}
           selected={selected}
           onSelect={setSelected}
+          home={home}
         />
       </div>
+
+      {authMode && (
+        <AuthDialog
+          mode={authMode}
+          onModeChange={setAuthMode}
+          onClose={() => setAuthMode(null)}
+          auth={auth}
+          nairobiNames={nairobiNames}
+          townNames={townNames}
+        />
+      )}
     </div>
   );
 }

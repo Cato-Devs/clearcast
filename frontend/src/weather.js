@@ -6,7 +6,7 @@ export const EVENTS = [
   { id: "flood_risk", label: "Flood risk", detail: "Heavy rain on wet ground in the next 24 hours" },
   { id: "hot", label: "Hot", detail: "Reaches 35°C in the next 6 hours" },
   { id: "cold", label: "Cold", detail: "Falls to 12°C in the next 6 hours" },
-  { id: "sunny", label: "Sunny", detail: "Average cloud cover of 30% or less in the next 6 hours" },
+  { id: "sunny", label: "Clear skies", detail: "Average cloud cover of 30% or less in the next 6 hours" },
   { id: "strong_wind", label: "Strong wind", detail: "Gusts of about 43 km/h in the next 6 hours" },
 ];
 

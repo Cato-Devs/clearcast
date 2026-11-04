@@ -7,12 +7,9 @@
   --hairline: #e1e0d9;
   --accent: #2a78d6;
   --accent-ink: #ffffff;
-  --band-very_unlikely: #86b6ef;
-  --band-unlikely: #3987e5;
-  --band-likely: #1c5cab;
-  --band-very_likely: #0d366b;
-  --band-no_data: #c3c2b7;
+  --band-no_data: #c3c2b7; /* the four likelihood bands are in eventColors.css */
   --error: #d03b3b;
+  --error-text: #b02a2a;
   --tiles: grayscale(1) contrast(0.9) brightness(1.05);
 }
 
@@ -25,11 +22,8 @@
     --ink-2: #c3c2b7;
     --hairline: #2c2c2a;
     --accent: #3987e5;
-    --band-very_unlikely: #184f95;
-    --band-unlikely: #2a78d6;
-    --band-likely: #5598e7;
-    --band-very_likely: #9ec5f4;
     --band-no_data: #52514e;
+    --error-text: #f09595;
     --tiles: grayscale(1) invert(1) brightness(0.8) contrast(0.9);
   }
 }
@@ -97,6 +91,138 @@ header {
   font-size: 0.9rem;
 }
 
+header .updated {
+  margin-right: auto;
+  margin-left: 12px;
+}
+
+.account {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.account-email {
+  overflow: hidden;
+  max-width: 220px;
+  color: var(--ink-2);
+  font-size: 0.9rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.button {
+  padding: 6px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  background: var(--surface);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.button:hover {
+  border-color: var(--ink-2);
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.button.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.detail-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.detail-head .link {
+  font-size: 0.85rem;
+}
+
+.home-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.home-tag {
+  color: var(--ink-2);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.form-error {
+  color: var(--error-text);
+  font-size: 0.9rem;
+}
+
+.auth-dialog {
+  width: min(400px, calc(100vw - 32px));
+  padding: 20px;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.auth-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.auth-dialog form {
+  display: grid;
+  gap: 14px;
+}
+
+.auth-dialog label {
+  display: grid;
+  gap: 4px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.auth-dialog small {
+  font-weight: 400;
+}
+
+.auth-dialog input,
+.auth-dialog select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--ink-2);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 400;
+}
+
+.auth-dialog input:focus-visible,
+.auth-dialog select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.switch-mode {
+  color: var(--ink-2);
+  font-size: 0.88rem;
+}
+
 .notice {
   padding: 10px 14px;
   border: 1px solid var(--hairline);
@@ -116,6 +242,15 @@ header {
   gap: 8px;
 }
 
+.event-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: var(--event-accent);
+}
+
 .events button {
   padding: 7px 14px;
   border: 1px solid var(--hairline);
@@ -129,10 +264,14 @@ header {
 }
 
 .events button[aria-pressed="true"] {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-ink);
+  border-color: var(--event-accent);
+  background: var(--event-accent);
+  color: var(--event-accent-ink);
   font-weight: 600;
+}
+
+.events button[aria-pressed="true"] .event-dot {
+  background: var(--event-accent-ink);
 }
 
 .layout {
@@ -254,7 +393,7 @@ path.band-no_data { fill: var(--band-no_data); }
 
 .detail li button[aria-pressed="true"] {
   background: var(--page);
-  box-shadow: inset 3px 0 0 var(--accent);
+  box-shadow: inset 3px 0 0 var(--event-accent);
 }
 
 .detail-name,
@@ -313,6 +452,12 @@ tr.selected td {
 }
 
 @media (max-width: 860px) {
+  header .updated {
+    width: 100%;
+    margin-left: 0;
+    order: 3;
+  }
+
   .layout,
   .tables {
     grid-template-columns: minmax(0, 1fr);

@@ -1,0 +1,117 @@
+/* Each weather event has its own colour, from light to dark for the four likelihood bands.
+   Dark mode runs the other way, so the likeliest band always stands out most. */
+.event-rain {
+  --band-very_unlikely: #6dadff;
+  --band-unlikely: #3280dd;
+  --band-likely: #0256a9;
+  --band-very_likely: #013266;
+  --event-accent: #0256a9;
+  --event-accent-ink: #ffffff;
+}
+.event-heavy_rain {
+  --band-very_unlikely: #b296ff;
+  --band-unlikely: #8968d4;
+  --band-likely: #613ea6;
+  --band-very_likely: #3d0e79;
+  --event-accent: #613ea6;
+  --event-accent-ink: #ffffff;
+}
+.event-flood_risk {
+  --band-very_unlikely: #ec7fca;
+  --band-unlikely: #bc549e;
+  --band-likely: #8e2873;
+  --band-very_likely: #5c0148;
+  --event-accent: #8e2873;
+  --event-accent-ink: #ffffff;
+}
+.event-hot {
+  --band-very_unlikely: #ff7f71;
+  --band-unlikely: #ce5247;
+  --band-likely: #9e231e;
+  --band-very_likely: #650103;
+  --event-accent: #9e231e;
+  --event-accent-ink: #ffffff;
+}
+.event-cold {
+  --band-very_unlikely: #04c1d0;
+  --band-unlikely: #03919d;
+  --band-likely: #02646d;
+  --band-very_likely: #013b40;
+  --event-accent: #02646d;
+  --event-accent-ink: #ffffff;
+}
+.event-sunny {
+  --band-very_unlikely: #d6a20a;
+  --band-unlikely: #a17904;
+  --band-likely: #705301;
+  --band-very_likely: #423002;
+  --event-accent: #705301;
+  --event-accent-ink: #ffffff;
+}
+.event-strong_wind {
+  --band-very_unlikely: #61c568;
+  --band-unlikely: #31983d;
+  --band-likely: #016b1a;
+  --band-very_likely: #013f0b;
+  --event-accent: #016b1a;
+  --event-accent-ink: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  .event-rain {
+    --band-very_unlikely: #0256a9;
+    --band-unlikely: #2f7dd9;
+    --band-likely: #60a7ff;
+    --band-very_likely: #aed1fe;
+    --event-accent: #60a7ff;
+    --event-accent-ink: #0b0b0b;
+  }
+  .event-heavy_rain {
+    --band-very_unlikely: #613ea6;
+    --band-unlikely: #8665d1;
+    --band-likely: #ad8dfd;
+    --band-very_likely: #d1c4fe;
+    --event-accent: #ad8dfd;
+    --event-accent-ink: #0b0b0b;
+  }
+  .event-flood_risk {
+    --band-very_unlikely: #8e2873;
+    --band-unlikely: #b9519b;
+    --band-likely: #e579c4;
+    --band-very_likely: #ffb1e4;
+    --event-accent: #e579c4;
+    --event-accent-ink: #0b0b0b;
+  }
+  .event-hot {
+    --band-very_unlikely: #9e231e;
+    --band-unlikely: #cb4f44;
+    --band-likely: #f9786a;
+    --band-very_likely: #febab1;
+    --event-accent: #f9786a;
+    --event-accent-ink: #0b0b0b;
+  }
+  .event-cold {
+    --band-very_unlikely: #02646d;
+    --band-unlikely: #058e99;
+    --band-likely: #09bac9;
+    --band-very_likely: #0ee8fa;
+    --event-accent: #09bac9;
+    --event-accent-ink: #0b0b0b;
+  }
+  .event-sunny {
+    --band-very_unlikely: #705301;
+    --band-unlikely: #9e7604;
+    --band-likely: #ce9c09;
+    --band-very_likely: #fdc436;
+    --event-accent: #ce9c09;
+    --event-accent-ink: #0b0b0b;
+  }
+  .event-strong_wind {
+    --band-very_unlikely: #016b1a;
+    --band-unlikely: #2d9539;
+    --band-likely: #5bbe62;
+    --band-very_likely: #85e98a;
+    --event-accent: #5bbe62;
+    --event-accent-ink: #0b0b0b;
+  }
+}
