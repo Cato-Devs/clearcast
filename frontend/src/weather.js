@@ -33,6 +33,22 @@ export function displayBand(run, eventId) {
   return BANDS.find((b) => b.id === prediction.band) ?? NO_DATA;
 }
 
+export const SOURCE_LABEL = { openweather: "OpenWeather", tomorrow: "Tomorrow.io", open_meteo: "Open-Meteo estimate" };
+
+/** Which live APIs a current weather row came from, for example "OpenWeather + Tomorrow.io". */
+export function liveSources(row) {
+  const live = ["openweather", "tomorrow"].filter((s) => Object.values(row.sources).includes(s));
+  return live.length ? live.map((s) => SOURCE_LABEL[s]).join(" + ") : "Open-Meteo estimates only";
+}
+
+const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+
+/** Wind direction in degrees as a compass point. Wind direction is where the wind blows from. */
+export const compass = (degrees) => COMPASS[Math.round(degrees / 45) % 8];
+
+/** Wind speed in m/s as km/h, the unit people in Kenya use. */
+export const kmh = (metresPerSecond) => Math.round(metresPerSecond * 3.6);
+
 /** A time in East Africa Time, for example "Wed 4 Nov, 9:00 pm". */
 export function formatEat(utcText) {
   return new Intl.DateTimeFormat("en-KE", {

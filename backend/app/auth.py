@@ -8,7 +8,7 @@ from argon2.exceptions import InvalidHashError, VerificationError
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr, Field
-from sqlalchemy import select
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 
 from app.config import ADMIN_EMAIL, ADMIN_PASSWORD, JWT_EXPIRE_MINUTES, JWT_SECRET
@@ -141,6 +141,7 @@ def register(request: RegisterRequest):
         email=normalise_email(request.email),
         password_hash=hasher.hash(request.password),
         home_location=request.home_location,
+        last_login_at=func.now(),  # signing up also logs the user in
     )
     try:
         with SessionLocal.begin() as session:
@@ -169,6 +170,8 @@ def login(body: LoginRequest, request: Request):
     if not user.is_active:
         raise HTTPException(status_code=403, detail="This account has been disabled.")
     clear_failed_logins(limit_key)
+    with SessionLocal.begin() as session:
+        session.execute(update(User).where(User.id == user.id).values(last_login_at=func.now()))
     return login_response(user)
 
 

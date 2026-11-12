@@ -154,7 +154,8 @@ function NewAlertForm({ onCreated, emailEnabled }) {
   );
 }
 
-function describe(subscription) {
+/** A one-line summary of an alert. Also used on the Admin page. */
+export function describe(subscription) {
   if (subscription.kind === "always") {
     const event = EVENTS.find((e) => e.id === subscription.event).label;
     return `${event} in ${subscription.location}: ${BAND_LABEL[subscription.min_band].toLowerCase()}`;

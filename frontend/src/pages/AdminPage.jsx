@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useApp } from "../AppContext.jsx";
 import { LoginPrompt } from "../components.jsx";
 import { EVENTS, formatEat } from "../weather.js";
+import { describe } from "./AlertsPage.jsx";
 import NotFoundPage from "./NotFoundPage.jsx";
 
 const TABS = [
@@ -63,6 +64,7 @@ function SystemTab() {
     <div className="stack">
       <div className="stats">
         <Stat label="Users" value={data.users} />
+        <Stat label={`New users, last ${data.new_user_days} days`} value={data.new_users} />
         <Stat label="Active alerts" value={data.active_alerts} />
         <Stat label="Notifications, last 24 hours" value={data.notifications_24h} />
         <Stat label="Failed emails" value={data.emails_failed} />
@@ -87,6 +89,8 @@ function SystemTab() {
         </p>
       </section>
 
+      <SourcesCard sources={data.sources} />
+
       <section className="card">
         <h2>Band stability</h2>
         <p>
@@ -100,6 +104,57 @@ function SystemTab() {
         </p>
       </section>
     </div>
+  );
+}
+
+function sourceState(source) {
+  if (!source.configured) return "Not set up: no API key in .env";
+  if (!source.last_ok_at && !source.last_failure_at) return "Waiting for the first call";
+  if (source.last_failure_at && (!source.last_ok_at || source.last_failure_at > source.last_ok_at)) {
+    return `Failing: ${source.last_error}`;
+  }
+  return "Working";
+}
+
+function SourcesCard({ sources }) {
+  return (
+    <section className="card">
+      <h2>Live weather sources</h2>
+      <div className="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Source</th>
+              <th scope="col">Status</th>
+              <th scope="col">Last success (EAT)</th>
+              <th scope="col" className="number">Calls, last hour</th>
+              <th scope="col" className="number">Calls, last 24 hours</th>
+              <th scope="col" className="number">Failed, last 24 hours</th>
+              <th scope="col">Schedule</th>
+              <th scope="col">Free plan limit</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sources.map((source) => (
+              <tr key={source.source}>
+                <td>{source.label}</td>
+                <td>{sourceState(source)}</td>
+                <td>{source.last_ok_at ? formatEat(source.last_ok_at) : "Never"}</td>
+                <td className="number">{source.calls_last_hour}</td>
+                <td className="number">{source.calls_24h}</td>
+                <td className="number">{source.failed_24h}</td>
+                <td>{source.schedule}</td>
+                <td>{source.limit}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="hint">
+        OpenWeather gives each location's current reading and Tomorrow.io fills gaps. If both fail, the predictions
+        still run on Open-Meteo estimates.
+      </p>
+    </section>
   );
 }
 
@@ -182,10 +237,126 @@ function ModelTab() {
   );
 }
 
+const KIND_LABEL = { always: "Always-on alert", daily: "Daily check", trip: "Trip check" };
+
+function statusText(user) {
+  return user.is_admin ? "Admin" : user.is_active ? "Active" : "Disabled";
+}
+
+function UserDetail({ userId, onBack }) {
+  const { data, failed } = useAdminData(`/api/admin/users/${userId}`);
+  const back = (
+    <p>
+      <button type="button" className="link small" onClick={onBack}>
+        ← All users
+      </button>
+    </p>
+  );
+  if (!data) {
+    return (
+      <div className="stack">
+        {back}
+        <Loading failed={failed} />
+      </div>
+    );
+  }
+  const { user, subscriptions, notifications } = data;
+
+  return (
+    <div className="stack">
+      {back}
+      <section className="card">
+        <h2>{user.email}</h2>
+        <dl className="details">
+          <dt>Status</dt>
+          <dd>{statusText(user)}</dd>
+          <dt>Home location</dt>
+          <dd>{user.home_location ?? "None"}</dd>
+          <dt>Joined</dt>
+          <dd>
+            {formatEat(user.created_at)} EAT{user.is_new && <span className="new-tag">New</span>}
+          </dd>
+          <dt>Last login</dt>
+          <dd>{user.last_login_at ? `${formatEat(user.last_login_at)} EAT` : "Not recorded"}</dd>
+        </dl>
+      </section>
+
+      <section className="card">
+        <h2>Alert settings ({subscriptions.length})</h2>
+        {subscriptions.length === 0 ? (
+          <p className="hint">This user hasn't set up any alerts.</p>
+        ) : (
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Type</th>
+                  <th scope="col">Alert</th>
+                  <th scope="col">Email</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Created (EAT)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {subscriptions.map((s) => (
+                  <tr key={s.id}>
+                    <td>{KIND_LABEL[s.kind]}</td>
+                    <td>{describe(s)}</td>
+                    <td>{s.email ? "Yes" : "No"}</td>
+                    <td>{s.active ? "On" : s.kind === "trip" ? "Finished" : "Off"}</td>
+                    <td>{formatEat(s.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="card">
+        <h2>Notifications sent ({notifications.length})</h2>
+        {notifications.length === 0 ? (
+          <p className="hint">ClearCast hasn't sent this user any notifications yet.</p>
+        ) : (
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Sent (EAT)</th>
+                  <th scope="col">Notification</th>
+                  <th scope="col">Read</th>
+                  <th scope="col">Email</th>
+                </tr>
+              </thead>
+              <tbody>
+                {notifications.map((n) => (
+                  <tr key={n.id}>
+                    <td>{formatEat(n.created_at)}</td>
+                    <td>
+                      <strong>{n.title}</strong>
+                      <br />
+                      <span className="hint">{n.body}</span>
+                    </td>
+                    <td>{n.read_at ? formatEat(n.read_at) : "Unread"}</td>
+                    <td>{n.email_status ? EMAIL_STATUS[n.email_status] : "Not requested"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {notifications.length === 200 && <p className="hint">Showing the latest 200.</p>}
+      </section>
+    </div>
+  );
+}
+
 function UsersTab() {
   const { auth } = useApp();
   const { data, failed, load } = useAdminData("/api/admin/users");
   const [error, setError] = useState(null);
+  const [viewing, setViewing] = useState(null);
+  if (viewing) return <UserDetail userId={viewing} onBack={() => setViewing(null)} />;
   if (!data) return <Loading failed={failed} />;
 
   const setActive = async (user, isActive) => {
@@ -201,6 +372,7 @@ function UsersTab() {
   return (
     <section className="card">
       <h2>Users</h2>
+      <p className="hint">Newest first. Users who joined in the last 7 days are marked New.</p>
       {error && (
         <p className="form-error" role="alert">
           {error}
@@ -213,20 +385,35 @@ function UsersTab() {
               <th scope="col">Email</th>
               <th scope="col">Home</th>
               <th scope="col" className="number">Active alerts</th>
-              <th scope="col">Joined</th>
+              <th scope="col" className="number">Notifications sent</th>
+              <th scope="col">Joined (EAT)</th>
+              <th scope="col">Last login (EAT)</th>
               <th scope="col">Status</th>
-              <th scope="col"><span className="visually-hidden">Action</span></th>
+              <th scope="col"><span className="visually-hidden">Actions</span></th>
             </tr>
           </thead>
           <tbody>
             {data.map((user) => (
               <tr key={user.id}>
-                <td>{user.email}</td>
+                <td>
+                  {user.email}
+                  {user.is_new && <span className="new-tag">New</span>}
+                </td>
                 <td>{user.home_location ?? "None"}</td>
                 <td className="number">{user.active_alerts}</td>
+                <td className="number">{user.notifications}</td>
                 <td>{formatEat(user.created_at)}</td>
-                <td>{user.is_admin ? "Admin" : user.is_active ? "Active" : "Disabled"}</td>
-                <td>
+                <td>{user.last_login_at ? formatEat(user.last_login_at) : "Not recorded"}</td>
+                <td>{statusText(user)}</td>
+                <td className="row-buttons">
+                  <button
+                    type="button"
+                    className="button"
+                    aria-label={`View ${user.email}`}
+                    onClick={() => setViewing(user.id)}
+                  >
+                    View
+                  </button>
                   {!user.is_admin && (
                     <button
                       type="button"

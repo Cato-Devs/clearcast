@@ -5,6 +5,7 @@ import AboutPage from "./pages/AboutPage.jsx";
 import AccountPage from "./pages/AccountPage.jsx";
 import AdminPage from "./pages/AdminPage.jsx";
 import AlertsPage from "./pages/AlertsPage.jsx";
+import CurrentWeatherPage from "./pages/CurrentWeatherPage.jsx";
 import LocationPage from "./pages/LocationPage.jsx";
 import LocationsPage from "./pages/LocationsPage.jsx";
 import MapPage from "./pages/MapPage.jsx";
@@ -17,6 +18,7 @@ export default function App() {
         <Routes>
           <Route element={<Layout />}>
             <Route index element={<MapPage />} />
+            <Route path="weather" element={<CurrentWeatherPage />} />
             <Route path="locations" element={<LocationsPage />} />
             <Route path="locations/:name" element={<LocationPage />} />
             <Route path="alerts" element={<AlertsPage />} />

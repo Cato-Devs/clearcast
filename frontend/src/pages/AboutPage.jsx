@@ -84,7 +84,7 @@ export default function AboutPage() {
       <section className="card">
         <h2>Where the data comes from</h2>
         <p>
-          The latest predictions use recent hourly weather from Open-Meteo. Past weather for training came from ERA5,
+          The latest predictions use the current reading from OpenWeather, with Tomorrow.io filling any gaps, and the hours before it from Open-Meteo. Past weather for training came from ERA5,
           through the Open-Meteo archive. Constituency boundaries are from geoBoundaries (IEBC and OCHA), and the base map
           is from OpenStreetMap.
         </p>

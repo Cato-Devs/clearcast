@@ -11,17 +11,18 @@ from sqlalchemy.dialects.postgresql import insert
 
 from app.alerts import process_always_alerts
 from app.config import ML_SERVICE_URL, POLL_INTERVAL_MINUTES
-from app.db import Collection, Prediction, PredictionSnapshot, SessionLocal
+from app.db import ApiCall, Collection, CurrentWeather, Prediction, PredictionSnapshot, SessionLocal
+from app.live_weather import current_reading
 
 log = logging.getLogger("uvicorn.error")
 
-PAUSE_BETWEEN_LOCATIONS_SECONDS = 0.5  # keeps the calls to Open-Meteo gentle
+PAUSE_BETWEEN_LOCATIONS_SECONDS = 0.5  # keeps the calls to the weather APIs gentle
 RETRY_AFTER_FAILURE_SECONDS = 60
 KEEP_COLLECTIONS_DAYS = 14
 
 
-def save_run(run, collection_id):
-    """Store one location's prediction run. Re-running the same hour updates its rows."""
+def save_run(run, collection_id, live):
+    """Store one location's prediction run and its current weather. Re-running the same hour updates its rows."""
     issued_at = datetime.fromisoformat(run["issued_at"])
     rows = [
         {
@@ -56,9 +57,21 @@ def save_run(run, collection_id):
         )
         for row in rows
     ]
+    _, sources, observed_at, description = live
+    current = run["current"]
+    weather = CurrentWeather(
+        collection_id=collection_id,
+        location=run["location"],
+        issued_at=issued_at,
+        observed_at=observed_at,
+        values=current["values"],
+        sources={field: sources[field] if field in current["live_fields"] else "open_meteo" for field in sources},
+        description=description,
+    )
     with SessionLocal.begin() as session:
         session.execute(statement)
         session.add_all(snapshots)
+        session.add(weather)
 
 
 def collect_once():
@@ -73,13 +86,15 @@ def collect_once():
     saved = 0
     total = 0
     try:
-        with httpx.Client(base_url=ML_SERVICE_URL, timeout=60) as client:
+        with httpx.Client(base_url=ML_SERVICE_URL, timeout=60) as client, httpx.Client(timeout=20) as api_client:
             locations = client.get("/locations").raise_for_status().json()
             total = len(locations)
             for location in locations:
                 name = location["name"]
                 try:
-                    save_run(client.get(f"/predict/{quote(name)}").raise_for_status().json(), collection_id)
+                    live = current_reading(api_client, location)
+                    run = client.post(f"/predict/{quote(name)}/live", json=live[0]).raise_for_status().json()
+                    save_run(run, collection_id, live)
                     saved += 1
                 except httpx.HTTPError as e:
                     failed.append(name)
@@ -100,6 +115,7 @@ def remove_old_collections():
     cutoff = datetime.now(timezone.utc) - timedelta(days=KEEP_COLLECTIONS_DAYS)
     with SessionLocal.begin() as session:
         session.execute(delete(Collection).where(Collection.started_at < cutoff))
+        session.execute(delete(ApiCall).where(ApiCall.called_at < cutoff))
 
 
 def run_forever(stop):

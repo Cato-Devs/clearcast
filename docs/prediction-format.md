@@ -89,3 +89,27 @@ The ML service returns all 7 events for a location together:
 ```
 
 `predictions` always has 7 items; the example shows one.
+
+## Live readings
+
+The backend gets predictions from `POST /predict/{location}/live`, sending the current reading
+from OpenWeather and Tomorrow.io:
+
+```json
+{ "temperature": 19.96, "humidity": 77, "pressure": 1018, "wind_speed": 3.09, "wind_deg": 80,
+  "wind_gust": 2.7, "rainfall": 0.19, "cloud_cover": 75 }
+```
+
+The ML service fetches the past 48 hours from Open-Meteo and replaces the newest hour's values
+with the live ones. A field sent as `null` keeps Open-Meteo's estimate. The response is a
+prediction run with one extra field, `current`, holding the newest hour as the models saw it:
+
+```json
+"current": {
+  "timestamp": "2026-11-12T05:00:00Z",
+  "values": { "temperature": 19.96, "humidity": 77.0, "...": "..." },
+  "live_fields": ["cloud_cover", "humidity", "pressure", "rainfall", "temperature", "wind_deg", "wind_gust", "wind_speed"]
+}
+```
+
+Fields missing from `live_fields` are Open-Meteo estimates.

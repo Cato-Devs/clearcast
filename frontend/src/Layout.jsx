@@ -79,6 +79,7 @@ export default function Layout() {
 
   const links = [
     { to: "/", label: "Map" },
+    { to: "/weather", label: "Current weather" },
     { to: "/locations", label: "Locations" },
     { to: "/alerts", label: "My Alerts" },
     { to: "/about", label: "About" },

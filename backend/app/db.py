@@ -81,6 +81,40 @@ class PredictionSnapshot(Base):
     probability: Mapped[float] = mapped_column(Float)
 
 
+class ApiCall(Base):
+    """One call to a live weather API (see live_weather.py)."""
+
+    __tablename__ = "api_calls"
+    __table_args__ = (Index("ix_api_call_latest", "source", "location", "called_at"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    source: Mapped[str] = mapped_column(String(16))  # openweather or tomorrow
+    location: Mapped[str] = mapped_column(String(64))
+    called_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+    ok: Mapped[bool] = mapped_column(Boolean)
+    status_code: Mapped[int | None] = mapped_column(Integer)
+    error: Mapped[str | None] = mapped_column(String(64))
+    reading: Mapped[dict | None] = mapped_column(JSON)  # the mapped fields, not the raw response
+    observed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    description: Mapped[str | None] = mapped_column(String(64))  # for example "light rain"
+
+
+class CurrentWeather(Base):
+    """The newest hour of weather each collection gave the models, for the current weather page."""
+
+    __tablename__ = "current_weather"
+    __table_args__ = (Index("ix_current_weather_latest", "location", "collection_id"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    collection_id: Mapped[int] = mapped_column(ForeignKey("collections.id", ondelete="CASCADE"), index=True)
+    location: Mapped[str] = mapped_column(String(64))
+    issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))  # the data hour
+    observed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))  # when the live reading was taken
+    values: Mapped[dict] = mapped_column(JSON)
+    sources: Mapped[dict] = mapped_column(JSON)  # field -> openweather, tomorrow or open_meteo
+    description: Mapped[str | None] = mapped_column(String(64))
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -91,6 +125,7 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=text("true"))
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class Subscription(Base):
@@ -146,3 +181,4 @@ def create_tables():
     with engine.begin() as connection:
         connection.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT false"))
         connection.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true"))
+        connection.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP WITH TIME ZONE"))

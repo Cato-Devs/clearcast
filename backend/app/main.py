@@ -11,7 +11,7 @@ from app.alerts_api import router as alerts_router
 from app.auth import router as auth_router
 from app.auth import seed_admin
 from app.collector import start_collector
-from app.db import Prediction, SessionLocal, create_tables
+from app.db import CurrentWeather, Prediction, SessionLocal, create_tables
 from app.ml_client import static_ml_data
 
 
@@ -69,6 +69,29 @@ def about():
         },
         "source_comparison": report["source_comparison"],
     }
+
+
+@app.get("/api/weather/current")
+def current_weather():
+    """The newest hour of weather per location, as the models saw it, with the source of each value."""
+    query = (
+        select(CurrentWeather)
+        .distinct(CurrentWeather.location)
+        .order_by(CurrentWeather.location, CurrentWeather.collection_id.desc())
+    )
+    with SessionLocal() as session:
+        rows = session.scalars(query).all()
+    return [
+        {
+            "location": row.location,
+            "issued_at": utc_text(row.issued_at),
+            "observed_at": row.observed_at and utc_text(row.observed_at),
+            "values": row.values,
+            "sources": row.sources,
+            "description": row.description,
+        }
+        for row in rows
+    ]
 
 
 @app.get("/api/predictions/latest")

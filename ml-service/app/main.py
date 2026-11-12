@@ -49,6 +49,19 @@ class PredictRequest(BaseModel):
     readings: list[Reading]
 
 
+class LiveReading(BaseModel):
+    """The current weather from OpenWeather or Tomorrow.io. Empty fields keep Open-Meteo's value."""
+
+    temperature: float | None = None
+    humidity: float | None = None
+    pressure: float | None = None
+    wind_speed: float | None = None
+    wind_deg: float | None = None
+    wind_gust: float | None = None
+    rainfall: float | None = None
+    cloud_cover: float | None = None
+
+
 def run_prediction(location, records):
     try:
         return predict_run(location, records)
@@ -96,6 +109,35 @@ def predict_from_backfill(location: str):
     except requests.RequestException as e:
         raise HTTPException(status_code=503, detail=f"Could not fetch recent weather: {type(e).__name__}")
     return run_prediction(location, records)
+
+
+@app.post("/predict/{location}/live")
+def predict_from_live(location: str, reading: LiveReading):
+    """Predict using the Open-Meteo backfill, with the newest hour replaced by a live reading.
+
+    Also returns the newest hour as the models saw it, for the current weather page.
+    """
+    loc = find_location(location)
+    try:
+        records = fetch_history(loc["lat"], loc["lon"])
+    except requests.RequestException as e:
+        raise HTTPException(status_code=503, detail=f"Could not fetch recent weather: {type(e).__name__}")
+    if records.empty:
+        raise HTTPException(status_code=503, detail="Open-Meteo returned no recent weather.")
+
+    live = {field: value for field, value in reading.model_dump().items() if value is not None}
+    newest = records.index[-1]
+    for field, value in live.items():
+        records.loc[newest, field] = value
+
+    run = run_prediction(location, records)
+    current = records.loc[newest]
+    run["current"] = {
+        "timestamp": current["timestamp"].strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "values": {field: None if pd.isna(current[field]) else float(current[field]) for field in LiveReading.model_fields},
+        "live_fields": sorted(live),  # the rest are Open-Meteo estimates
+    }
+    return run
 
 
 @app.post("/predict")

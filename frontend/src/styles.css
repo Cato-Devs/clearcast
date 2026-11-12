@@ -892,6 +892,60 @@ td.number {
   }
 }
 
+/* ---------- Current weather ---------- */
+
+.estimate {
+  color: var(--ink-2);
+}
+
+td.conditions::first-letter {
+  text-transform: uppercase;
+}
+
+.table-scroll th[scope="row"] {
+  text-align: left;
+  font-weight: 400;
+}
+
+.current-line {
+  display: grid;
+  gap: 2px;
+  margin: 4px 0 12px;
+}
+
+/* ---------- Admin users ---------- */
+
+.new-tag {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.row-buttons {
+  display: flex;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.details {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px 16px;
+  margin: 10px 0 0;
+}
+
+.details dt {
+  color: var(--ink-2);
+}
+
+.details dd {
+  margin: 0;
+}
+
 /* Stops wide content, like the admin tables, from stretching the page */
 .page,
 main,

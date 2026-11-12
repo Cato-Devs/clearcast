@@ -17,6 +17,10 @@ if len(JWT_SECRET) < 32:
 ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "").strip().lower()
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 
+# Live weather is optional: without a key, that source is skipped and Open-Meteo's estimates are used
+OPENWEATHER_API_KEY = os.environ.get("OPENWEATHER_API_KEY", "").strip()
+TOMORROW_API_KEY = os.environ.get("TOMORROW_API_KEY", "").strip()
+
 # Email is optional: without SMTP_HOST, alerts still appear in the app
 SMTP_HOST = os.environ.get("SMTP_HOST", "")
 SMTP_PORT = int(os.environ.get("SMTP_PORT") or "587")
