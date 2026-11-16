@@ -27,3 +27,11 @@ SMTP_PORT = int(os.environ.get("SMTP_PORT") or "587")
 SMTP_USER = os.environ.get("SMTP_USER", "")
 SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
 SMTP_FROM = os.environ.get("SMTP_FROM") or SMTP_USER or "alerts@clearcast.local"
+
+# SMS through Africa's Talking. Without a username and key, alerts still appear in the app.
+# The username "sandbox" sends to the Africa's Talking simulator instead of real phones.
+AT_USERNAME = os.environ.get("AT_USERNAME", "").strip()
+AT_API_KEY = os.environ.get("AT_API_KEY", "").strip()
+AT_SENDER_ID = os.environ.get("AT_SENDER_ID", "").strip()  # optional; needs approval from Africa's Talking
+# Each SMS costs money, so this caps how many one person can get per day (East Africa Time)
+SMS_DAILY_LIMIT = int(os.environ.get("SMS_DAILY_LIMIT") or "10")

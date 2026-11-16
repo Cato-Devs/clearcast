@@ -14,11 +14,13 @@ import threading
 from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 
-from sqlalchemy import select
+import httpx
+from sqlalchemy import func, select
 
-from app.config import SMTP_FROM, SMTP_HOST, SMTP_PASSWORD, SMTP_PORT, SMTP_USER
+from app.config import SMS_DAILY_LIMIT, SMTP_FROM, SMTP_HOST, SMTP_PASSWORD, SMTP_PORT, SMTP_USER
 from app.db import Notification, Prediction, PredictionSnapshot, SessionLocal, Subscription
 from app.realtime import publish
+from app.sms import send_sms, sms_enabled, sms_text
 
 log = logging.getLogger("uvicorn.error")
 
@@ -82,6 +84,8 @@ def recent_ranks(session, location, event, now):
 
 
 def add_notification(session, subscription, title, body):
+    """Every alert appears in the app and goes by SMS to the user's phone. Email is optional."""
+    user = subscription.user
     notification = Notification(
         user_id=subscription.user_id,
         subscription_id=subscription.id,
@@ -90,7 +94,8 @@ def add_notification(session, subscription, title, body):
         title=title,
         body=body,
         created_at=utc_now(),
-        email_status="pending" if subscription.email else None,
+        email_status="pending" if subscription.email and user.email else None,
+        sms_status="pending" if user.phone else None,
     )
     session.add(notification)
     return notification
@@ -322,6 +327,9 @@ def send_pending_emails():
             if not SMTP_HOST:
                 notification.email_status = "not_configured"
                 continue
+            if not notification.user.email:
+                notification.email_status = None  # the email was removed after the alert was made
+                continue
             try:
                 send_email(notification.user.email, notification.title, notification.body)
                 notification.email_status = "sent"
@@ -331,6 +339,42 @@ def send_pending_emails():
         session.commit()
 
 
+# ---------- SMS ----------
+
+
+def sms_sent_today(session, user_id, now):
+    start_of_day = now.astimezone(EAT).replace(hour=0, minute=0, second=0, microsecond=0)
+    return session.scalar(
+        select(func.count())
+        .select_from(Notification)
+        .where(Notification.user_id == user_id, Notification.sms_status == "sent", Notification.created_at >= start_of_day)
+    )
+
+
+def send_pending_sms(now=None):
+    now = now or utc_now()
+    with SessionLocal() as session:
+        pending = session.scalars(
+            select(Notification).where(Notification.sms_status == "pending").order_by(Notification.id)
+        ).all()
+        for notification in pending:
+            phone = notification.user.phone
+            if not sms_enabled():
+                notification.sms_status = "not_configured"
+            elif not phone:
+                notification.sms_status = None  # the phone number was removed after the alert was made
+            elif sms_sent_today(session, notification.user_id, now) >= SMS_DAILY_LIMIT:
+                notification.sms_status = "limit"  # still in the app; protects against runaway costs
+            else:
+                try:
+                    send_sms(phone, sms_text(notification.title, notification.body))
+                    notification.sms_status = "sent"
+                except (httpx.HTTPError, RuntimeError, ValueError) as e:
+                    log.warning("Could not send alert SMS %d: %s", notification.id, e)
+                    notification.sms_status = "failed"
+            session.commit()  # per message, so a crash can't send the same SMS twice
+
+
 # ---------- Schedule ----------
 
 
@@ -338,6 +382,7 @@ def run_forever(stop):
     while not stop.is_set():
         try:
             process_scheduled_alerts()
+            send_pending_sms()
             send_pending_emails()
         except Exception:
             log.exception("Alert check failed")  # keep the schedule alive

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useLocation, useSearchParams } from "react-router";
+import { Link, useLocation, useSearchParams } from "react-router";
 import { api } from "../api.js";
 import { useApp } from "../AppContext.jsx";
 import { LocationOptions, LoginPrompt } from "../components.jsx";
@@ -21,7 +21,7 @@ function nowInEat() {
   return new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 16);
 }
 
-function NewAlertForm({ onCreated, emailEnabled }) {
+function NewAlertForm({ onCreated, emailEnabled, smsEnabled }) {
   const { auth, event, home } = useApp();
   const [params] = useSearchParams();
   const [kind, setKind] = useState("always");
@@ -40,7 +40,7 @@ function NewAlertForm({ onCreated, emailEnabled }) {
     setBusy(true);
     setError(null);
     setSaved(null);
-    const body = { kind, location, email };
+    const body = { kind, location, email: email && emailEnabled && Boolean(auth.user.email) };
     if (kind === "always") Object.assign(body, { event: eventId, min_band: minBand });
     if (kind === "daily") body.time_of_day = time;
     // The form is in East Africa Time, wherever the browser is
@@ -129,11 +129,33 @@ function NewAlertForm({ onCreated, emailEnabled }) {
           </label>
         )}
 
+        <p className="hint">
+          {!auth.user.phone ? (
+            <>
+              Add your mobile number on the <Link to="/account">Account page</Link> to get alerts by SMS. Until then
+              they appear here in the app.
+            </>
+          ) : smsEnabled ? (
+            `Every alert appears here and is sent by SMS to ${auth.user.phone}.`
+          ) : (
+            "Every alert appears here. SMS isn't set up on this server yet, so nothing is sent to your phone for now."
+          )}
+        </p>
+
         <label className="checkbox">
-          <input type="checkbox" disabled={!emailEnabled} checked={email} onChange={(e) => setEmail(e.target.checked)} />
+          <input
+            type="checkbox"
+            disabled={!emailEnabled || !auth.user.email}
+            checked={email && emailEnabled && Boolean(auth.user.email)}
+            onChange={(e) => setEmail(e.target.checked)}
+          />
           <span>
             Also send by email
-            {!emailEnabled && <small> (email isn't set up yet, so this alert will appear in the app)</small>}
+            {!auth.user.email ? (
+              <small> (add an email address on the Account page first)</small>
+            ) : (
+              !emailEnabled && <small> (email isn't set up on this server yet)</small>
+            )}
           </span>
         </label>
 
@@ -274,6 +296,7 @@ export default function AlertsPage() {
   const { hash } = useLocation();
   const [subscriptions, setSubscriptions] = useState([]);
   const [emailEnabled, setEmailEnabled] = useState(false);
+  const [smsEnabled, setSmsEnabled] = useState(false);
   const [failed, setFailed] = useState(false);
   const request = auth.request;
   const loggedIn = Boolean(auth.user);
@@ -291,7 +314,10 @@ export default function AlertsPage() {
     if (!loggedIn) return;
     load();
     api("/api/alert-options")
-      .then((options) => setEmailEnabled(options.email_enabled))
+      .then((options) => {
+        setEmailEnabled(options.email_enabled);
+        setSmsEnabled(options.sms_enabled);
+      })
       .catch(() => {});
   }, [loggedIn, load]);
 
@@ -317,7 +343,7 @@ export default function AlertsPage() {
       )}
       <div className="columns">
         <div className="stack">
-          <NewAlertForm onCreated={load} emailEnabled={emailEnabled} />
+          <NewAlertForm onCreated={load} emailEnabled={emailEnabled} smsEnabled={smsEnabled} />
           <AlertList subscriptions={subscriptions} onChange={load} />
         </div>
         <NotificationList />

@@ -68,6 +68,7 @@ function SystemTab() {
         <Stat label="Active alerts" value={data.active_alerts} />
         <Stat label="Notifications, last 24 hours" value={data.notifications_24h} />
         <Stat label="Failed emails" value={data.emails_failed} />
+        <Stat label={data.sms_enabled ? "Failed SMS" : "SMS (not set up)"} value={data.sms_failed} />
       </div>
 
       <section className="card">
@@ -266,8 +267,12 @@ function UserDetail({ userId, onBack }) {
     <div className="stack">
       {back}
       <section className="card">
-        <h2>{user.email}</h2>
+        <h2>{userName(user)}</h2>
         <dl className="details">
+          <dt>Mobile number</dt>
+          <dd>{user.phone ?? "None"}</dd>
+          <dt>Email</dt>
+          <dd>{user.email ?? "None"}</dd>
           <dt>Status</dt>
           <dd>{statusText(user)}</dd>
           <dt>Home location</dt>
@@ -325,6 +330,7 @@ function UserDetail({ userId, onBack }) {
                   <th scope="col">Sent (EAT)</th>
                   <th scope="col">Notification</th>
                   <th scope="col">Read</th>
+                  <th scope="col">SMS</th>
                   <th scope="col">Email</th>
                 </tr>
               </thead>
@@ -338,6 +344,7 @@ function UserDetail({ userId, onBack }) {
                       <span className="hint">{n.body}</span>
                     </td>
                     <td>{n.read_at ? formatEat(n.read_at) : "Unread"}</td>
+                    <td>{n.sms_status ? SMS_STATUS[n.sms_status] : "No phone"}</td>
                     <td>{n.email_status ? EMAIL_STATUS[n.email_status] : "Not requested"}</td>
                   </tr>
                 ))}
@@ -370,7 +377,7 @@ function UsersTab() {
   };
 
   const deleteUser = async (user) => {
-    const question = `Delete ${user.email}? Their alert settings and notifications are deleted too. This can't be undone.`;
+    const question = `Delete ${userName(user)}? Their alert settings and notifications are deleted too. This can't be undone.`;
     if (!window.confirm(question)) return;
     setError(null);
     try {
@@ -394,7 +401,7 @@ function UsersTab() {
         <table>
           <thead>
             <tr>
-              <th scope="col">Email</th>
+              <th scope="col">User</th>
               <th scope="col">Home</th>
               <th scope="col" className="number">Active alerts</th>
               <th scope="col" className="number">Notifications sent</th>
@@ -408,8 +415,15 @@ function UsersTab() {
             {data.map((user) => (
               <tr key={user.id}>
                 <td>
-                  {user.email}
+                  {user.phone ?? "No phone"}
+                  {user.is_admin && <span className="new-tag">Admin</span>}
                   {user.is_new && <span className="new-tag">New</span>}
+                  {user.email && (
+                    <>
+                      <br />
+                      <span className="hint">{user.email}</span>
+                    </>
+                  )}
                 </td>
                 <td>{user.home_location ?? "None"}</td>
                 <td className="number">{user.active_alerts}</td>
@@ -421,7 +435,7 @@ function UsersTab() {
                   <button
                     type="button"
                     className="button"
-                    aria-label={`View ${user.email}`}
+                    aria-label={`View ${userName(user)}`}
                     onClick={() => setViewing(user.id)}
                   >
                     View
@@ -431,7 +445,7 @@ function UsersTab() {
                       <button
                         type="button"
                         className="button"
-                        aria-label={`${user.is_active ? "Disable" : "Enable"} ${user.email}`}
+                        aria-label={`${user.is_active ? "Disable" : "Enable"} ${userName(user)}`}
                         onClick={() => setActive(user, !user.is_active)}
                       >
                         {user.is_active ? "Disable" : "Enable"}
@@ -439,7 +453,7 @@ function UsersTab() {
                       <button
                         type="button"
                         className="button danger"
-                        aria-label={`Delete ${user.email}`}
+                        aria-label={`Delete ${userName(user)}`}
                         onClick={() => deleteUser(user)}
                       >
                         Delete
@@ -454,6 +468,19 @@ function UsersTab() {
       </div>
     </section>
   );
+}
+
+const SMS_STATUS = {
+  pending: "Sending",
+  sent: "Sent",
+  failed: "Failed",
+  not_configured: "SMS not set up",
+  limit: "Daily limit reached",
+};
+
+/** Users sign up with a phone number; the admin and older accounts may only have an email. */
+function userName(user) {
+  return user.phone ?? user.email ?? `User ${user.id}`;
 }
 
 const EMAIL_STATUS = { pending: "Sending", sent: "Sent", failed: "Failed", not_configured: "Email not set up" };
@@ -474,6 +501,7 @@ function AlertsTab() {
                 <th scope="col">Sent (EAT)</th>
                 <th scope="col">User</th>
                 <th scope="col">Alert</th>
+                <th scope="col">SMS</th>
                 <th scope="col">Email</th>
               </tr>
             </thead>
@@ -481,8 +509,9 @@ function AlertsTab() {
               {data.map((row) => (
                 <tr key={row.id}>
                   <td>{formatEat(row.created_at)}</td>
-                  <td>{row.email}</td>
+                  <td>{row.user}</td>
                   <td>{row.title}</td>
+                  <td>{row.sms_status ? SMS_STATUS[row.sms_status] : "No phone"}</td>
                   <td>{row.email_status ? EMAIL_STATUS[row.email_status] : "Not requested"}</td>
                 </tr>
               ))}

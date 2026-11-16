@@ -14,6 +14,7 @@ from app.auth import active_user, check_location, current_user, decode_token
 from app.config import SMTP_HOST
 from app.db import Notification, SessionLocal, Subscription, User
 from app.realtime import async_client, channel
+from app.sms import sms_enabled
 
 router = APIRouter(prefix="/api")
 
@@ -128,6 +129,8 @@ def list_subscriptions(user: User = Depends(current_user)):
 @router.post("/subscriptions", status_code=201)
 def create_subscription(request: SubscriptionRequest, user: User = Depends(current_user)):
     check_location(request.location)
+    if request.email and not user.email:
+        raise HTTPException(status_code=422, detail="Add an email address on the Account page to get alerts by email.")
     now = utc_now()
     with SessionLocal.begin() as session:
         count = session.scalar(select(func.count()).select_from(Subscription).where(Subscription.user_id == user.id))
@@ -193,7 +196,7 @@ def mark_read(request: ReadRequest, user: User = Depends(current_user)):
 
 @router.get("/alert-options")
 def alert_options():
-    return {"email_enabled": bool(SMTP_HOST)}
+    return {"email_enabled": bool(SMTP_HOST), "sms_enabled": sms_enabled()}
 
 
 @router.websocket("/ws")

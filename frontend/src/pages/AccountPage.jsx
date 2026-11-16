@@ -38,6 +38,79 @@ function HomeForm() {
   );
 }
 
+function ContactForm() {
+  const { auth } = useApp();
+  const { user } = auth;
+  const [phone, setPhone] = useState(user.phone ?? "");
+  const [email, setEmail] = useState(user.email ?? "");
+  const [message, setMessage] = useState(null);
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    setMessage(null);
+    setError(null);
+    try {
+      await auth.setContact(phone, user.is_admin ? user.email : email);
+      setMessage("Saved.");
+    } catch (failure) {
+      if (failure.status === 401) return;
+      setError(Array.isArray(failure.detail) ? "Enter a valid email address, or leave it empty." : errorText(failure));
+    }
+    setBusy(false);
+  };
+
+  return (
+    <section className="card">
+      <h2>Contact details</h2>
+      {!user.phone && !user.is_admin && (
+        <p className="form-error" role="alert">
+          Add your mobile number to get your alerts by SMS.
+        </p>
+      )}
+      <form className="form" onSubmit={submit}>
+        <label>
+          Mobile number{user.is_admin ? " (optional)" : ""}
+          <input
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            required={!user.is_admin}
+            placeholder="0712 345 678"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+          />
+          <small>Every alert is sent here by SMS, and shown in the app.</small>
+        </label>
+        <label>
+          Email {user.is_admin ? "(set in the .env file)" : "(optional)"}
+          <input
+            type="email"
+            autoComplete="email"
+            disabled={user.is_admin}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          {!user.is_admin && <small>Needed only if you want some alerts by email too.</small>}
+        </label>
+        {error && (
+          <p className="form-error" role="alert">
+            {error}
+          </p>
+        )}
+        {message && <p role="status">{message}</p>}
+        <div className="dialog-actions start">
+          <button type="submit" className="button primary" disabled={busy}>
+            Save contact details
+          </button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
 function PasswordForm() {
   const { auth } = useApp();
   const [current, setCurrent] = useState("");
@@ -115,14 +188,15 @@ export default function AccountPage() {
     <div className="stack narrow">
       <h1 className="page-title">Account</h1>
       <section className="card">
-        <h2>Your details</h2>
-        <p>{auth.user.email}</p>
+        <h2>Your account</h2>
+        <p>Logged in as {auth.user.phone ?? auth.user.email}</p>
         <div className="dialog-actions start">
           <button type="button" className="button" onClick={auth.logout}>
             Log out
           </button>
         </div>
       </section>
+      <ContactForm />
       <HomeForm />
       <PasswordForm />
     </div>

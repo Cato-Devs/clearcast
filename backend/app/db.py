@@ -119,7 +119,8 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    email: Mapped[str] = mapped_column(String(254), unique=True)  # stored in lower case
+    email: Mapped[str | None] = mapped_column(String(254), unique=True)  # optional, stored in lower case
+    phone: Mapped[str | None] = mapped_column(String(16), unique=True)  # like +254712345678; the admin may have none
     password_hash: Mapped[str] = mapped_column(String(255))  # never the password itself
     home_location: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -171,6 +172,8 @@ class Notification(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     email_status: Mapped[str | None] = mapped_column(String(16))  # None, pending, sent, not_configured or failed
+    # None (no phone), pending, sent, failed, not_configured or limit (daily SMS limit reached)
+    sms_status: Mapped[str | None] = mapped_column(String(16))
 
     user: Mapped[User] = relationship()
 
@@ -182,3 +185,8 @@ def create_tables():
         connection.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT false"))
         connection.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true"))
         connection.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP WITH TIME ZONE"))
+        # Sign-up by phone number, with email optional
+        connection.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(16)"))
+        connection.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS users_phone_key ON users (phone)"))
+        connection.execute(text("ALTER TABLE users ALTER COLUMN email DROP NOT NULL"))
+        connection.execute(text("ALTER TABLE notifications ADD COLUMN IF NOT EXISTS sms_status VARCHAR(16)"))

@@ -11,6 +11,7 @@ from app.auth import current_admin
 from app.db import ApiCall, Collection, Notification, Prediction, SessionLocal, Subscription, User
 from app.live_weather import SOURCES
 from app.ml_client import static_ml_data
+from app.sms import sms_enabled
 
 # Every route in this file needs an admin. Setting it here means none can be left unprotected.
 router = APIRouter(prefix="/api/admin", dependencies=[Depends(current_admin)])
@@ -102,6 +103,8 @@ def overview():
                 select(Notification).where(Notification.created_at >= now - timedelta(hours=24)).subquery()
             ),
             "emails_failed": count(select(Notification).where(Notification.email_status == "failed").subquery()),
+            "sms_failed": count(select(Notification).where(Notification.sms_status == "failed").subquery()),
+            "sms_enabled": sms_enabled(),
             "band_changes": {"comparisons": changes.comparisons, "changes": changes.changes},
         }
 
@@ -141,6 +144,7 @@ def users():
 def user_summary(user, now):
     return {
         "id": user.id,
+        "phone": user.phone,
         "email": user.email,
         "home_location": user.home_location,
         "is_admin": user.is_admin,
@@ -183,6 +187,7 @@ def user_detail(user_id: int):
                     "created_at": utc_text(n.created_at),
                     "read_at": utc_text(n.read_at),
                     "email_status": n.email_status,
+                    "sms_status": n.sms_status,
                 }
                 for n in notifications
             ],
@@ -224,7 +229,7 @@ def delete_user(user_id: int):
 def alert_log():
     with SessionLocal() as session:
         rows = session.execute(
-            select(Notification, User.email)
+            select(Notification, User.phone, User.email)
             .join(User, Notification.user_id == User.id)
             .order_by(Notification.created_at.desc(), Notification.id.desc())
             .limit(100)
@@ -232,12 +237,13 @@ def alert_log():
         return [
             {
                 "id": notification.id,
-                "email": email,
+                "user": phone or email,
                 "kind": notification.kind,
                 "location": notification.location,
                 "title": notification.title,
                 "created_at": utc_text(notification.created_at),
                 "email_status": notification.email_status,
+                "sms_status": notification.sms_status,
             }
-            for notification, email in rows
+            for notification, phone, email in rows
         ]

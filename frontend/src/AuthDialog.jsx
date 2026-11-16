@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 function errorMessage(error) {
   if (Array.isArray(error.detail)) {
     const fields = error.detail.flatMap((d) => d.loc ?? []);
-    if (fields.includes("email")) return "Enter a valid email address.";
+    if (fields.includes("email")) return "Enter a valid email address, or leave it empty.";
     if (fields.includes("password")) return "Passwords must be 8 to 128 characters long.";
   }
   if (error.status && typeof error.detail === "string") return error.detail;
@@ -13,7 +13,9 @@ function errorMessage(error) {
 
 export default function AuthDialog({ mode, onModeChange, onClose, auth, nairobiNames, townNames }) {
   const dialog = useRef(null);
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [loginName, setLoginName] = useState("");
   const [password, setPassword] = useState("");
   const [home, setHome] = useState("");
   const [error, setError] = useState(null);
@@ -36,8 +38,8 @@ export default function AuthDialog({ mode, onModeChange, onClose, auth, nairobiN
     setBusy(true);
     setError(null);
     try {
-      if (signingUp) await auth.register(email, password, home);
-      else await auth.login(email, password);
+      if (signingUp) await auth.register({ phone, email, password, homeLocation: home });
+      else await auth.login(loginName, password);
       onClose();
     } catch (failure) {
       setError(errorMessage(failure));
@@ -50,16 +52,39 @@ export default function AuthDialog({ mode, onModeChange, onClose, auth, nairobiN
       <form onSubmit={submit}>
         <h2 id="auth-title">{signingUp ? "Create your account" : "Log in"}</h2>
 
-        <label>
-          Email
-          <input
-            type="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </label>
+        {signingUp ? (
+          <>
+            <label>
+              Mobile number
+              <input
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                required
+                placeholder="0712 345 678"
+                aria-describedby="phone-hint"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+              <small id="phone-hint">Your alerts are sent here by SMS. You also log in with it.</small>
+            </label>
+            <label>
+              Email (optional)
+              <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            </label>
+          </>
+        ) : (
+          <label>
+            Mobile number or email
+            <input
+              type="text"
+              autoComplete="username"
+              required
+              value={loginName}
+              onChange={(e) => setLoginName(e.target.value)}
+            />
+          </label>
+        )}
 
         <label>
           Password

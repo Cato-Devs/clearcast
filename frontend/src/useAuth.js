@@ -57,16 +57,17 @@ export function useAuth() {
     setSessionEnded(false);
   }, []);
 
+  /** Log in with a phone number or an email address. */
   const login = useCallback(
-    async (email, password) => {
-      finishLogin(await api("/api/auth/login", { method: "POST", body: { email, password } }));
+    async (phoneOrEmail, password) => {
+      finishLogin(await api("/api/auth/login", { method: "POST", body: { login: phoneOrEmail, password } }));
     },
     [finishLogin],
   );
 
   const register = useCallback(
-    async (email, password, homeLocation) => {
-      const body = { email, password, home_location: homeLocation || null };
+    async ({ phone, email, password, homeLocation }) => {
+      const body = { phone, email: email.trim() || null, password, home_location: homeLocation || null };
       finishLogin(await api("/api/auth/register", { method: "POST", body }));
     },
     [finishLogin],
@@ -92,10 +93,18 @@ export function useAuth() {
     [request],
   );
 
+  const setContact = useCallback(
+    async (phone, email) => {
+      const body = { phone: phone.trim() || null, email: email.trim() || null };
+      setUser(await request("/api/me/contact", { method: "PUT", body }));
+    },
+    [request],
+  );
+
   const logout = useCallback(() => {
     clear();
     setSessionEnded(false);
   }, [clear]);
 
-  return { token, user, sessionEnded, login, register, logout, setHome, request };
+  return { token, user, sessionEnded, login, register, logout, setHome, setContact, request };
 }

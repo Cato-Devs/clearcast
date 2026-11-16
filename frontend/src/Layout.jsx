@@ -25,7 +25,7 @@ function AccountMenu() {
   return (
     <div className="account-menu" ref={menu}>
       <button type="button" className="button account-button" aria-expanded={open} onClick={() => setOpen(!open)}>
-        <span className="account-email">{auth.user.email}</span>
+        <span className="account-email">{auth.user.phone ?? auth.user.email}</span>
         <span aria-hidden="true"> ▾</span>
       </button>
       {open && (
