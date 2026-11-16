@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import func, select, text
+from sqlalchemy import delete, func, select, text
 
 from app.alerts import MAX_DATA_AGE, utc_now
 from app.alerts_api import subscription_data
@@ -203,6 +203,21 @@ def set_user_active(user_id: int, request: UserActiveRequest):
             raise HTTPException(status_code=409, detail="The admin account can't be disabled here.")
         user.is_active = request.is_active
         return {"id": user.id, "is_active": user.is_active}
+
+
+@router.delete("/users/{user_id}", status_code=204)
+def delete_user(user_id: int):
+    """Delete a user permanently, with their alert settings and notifications. Can't be undone."""
+    with SessionLocal.begin() as session:
+        user = session.get(User, user_id)
+        if user is None:
+            raise HTTPException(status_code=404, detail="User not found.")
+        if user.is_admin:
+            raise HTTPException(status_code=409, detail="The admin account can't be deleted.")
+        # The database would cascade these too; deleting them here doesn't rely on that.
+        session.execute(delete(Notification).where(Notification.user_id == user_id))
+        session.execute(delete(Subscription).where(Subscription.user_id == user_id))
+        session.delete(user)
 
 
 @router.get("/alerts")

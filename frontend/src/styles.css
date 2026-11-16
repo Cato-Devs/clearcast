@@ -125,6 +125,15 @@ small {
   font-weight: 600;
 }
 
+/* For actions that can't be undone */
+.button.danger {
+  color: var(--error-text);
+}
+
+.button.danger:hover {
+  border-color: var(--error);
+}
+
 .detail-head {
   display: flex;
   flex-wrap: wrap;

@@ -369,6 +369,18 @@ function UsersTab() {
     }
   };
 
+  const deleteUser = async (user) => {
+    const question = `Delete ${user.email}? Their alert settings and notifications are deleted too. This can't be undone.`;
+    if (!window.confirm(question)) return;
+    setError(null);
+    try {
+      await auth.request(`/api/admin/users/${user.id}`, { method: "DELETE" });
+      await load();
+    } catch (failure) {
+      if (failure.status !== 401) setError(failure.message);
+    }
+  };
+
   return (
     <section className="card">
       <h2>Users</h2>
@@ -415,14 +427,24 @@ function UsersTab() {
                     View
                   </button>
                   {!user.is_admin && (
-                    <button
-                      type="button"
-                      className="button"
-                      aria-label={`${user.is_active ? "Disable" : "Enable"} ${user.email}`}
-                      onClick={() => setActive(user, !user.is_active)}
-                    >
-                      {user.is_active ? "Disable" : "Enable"}
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        className="button"
+                        aria-label={`${user.is_active ? "Disable" : "Enable"} ${user.email}`}
+                        onClick={() => setActive(user, !user.is_active)}
+                      >
+                        {user.is_active ? "Disable" : "Enable"}
+                      </button>
+                      <button
+                        type="button"
+                        className="button danger"
+                        aria-label={`Delete ${user.email}`}
+                        onClick={() => deleteUser(user)}
+                      >
+                        Delete
+                      </button>
+                    </>
                   )}
                 </td>
               </tr>
