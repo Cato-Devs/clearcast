@@ -18,6 +18,9 @@ export default function AuthDialog({ mode, onModeChange, onClose, auth, nairobiN
   const [loginName, setLoginName] = useState("");
   const [password, setPassword] = useState("");
   const [home, setHome] = useState("");
+  const [codeFor, setCodeFor] = useState(null); // the phone number a sign-up code was sent to
+  const [code, setCode] = useState("");
+  const [notice, setNotice] = useState(null);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const signingUp = mode === "register";
@@ -30,7 +33,15 @@ export default function AuthDialog({ mode, onModeChange, onClose, auth, nairobiN
 
   const changeMode = (next) => {
     setError(null);
+    setCodeFor(null);
     onModeChange(next);
+  };
+
+  const sendCode = async () => {
+    const sentTo = await auth.startRegister({ phone, email, password, homeLocation: home });
+    setCodeFor(sentTo);
+    setCode("");
+    setNotice(`We sent a 6-digit code by SMS to ${sentTo}.`);
   };
 
   const submit = async (e) => {
@@ -38,14 +49,79 @@ export default function AuthDialog({ mode, onModeChange, onClose, auth, nairobiN
     setBusy(true);
     setError(null);
     try {
-      if (signingUp) await auth.register({ phone, email, password, homeLocation: home });
-      else await auth.login(loginName, password);
-      onClose();
+      if (!signingUp) {
+        await auth.login(loginName, password);
+        onClose();
+      } else if (codeFor) {
+        await auth.verifyRegister(codeFor, code);
+        onClose();
+      } else {
+        await sendCode();
+        setBusy(false);
+      }
     } catch (failure) {
       setError(errorMessage(failure));
       setBusy(false);
     }
   };
+
+  const resend = async () => {
+    setError(null);
+    setNotice(null);
+    try {
+      await sendCode();
+    } catch (failure) {
+      setError(errorMessage(failure));
+    }
+  };
+
+  if (signingUp && codeFor) {
+    return (
+      <dialog ref={dialog} className="auth-dialog" aria-labelledby="auth-title" onCancel={onClose}>
+        <form onSubmit={submit}>
+          <h2 id="auth-title">Confirm your number</h2>
+          {notice && <p role="status">{notice}</p>}
+          <label>
+            Code
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="[0-9]{6}"
+              maxLength={6}
+              required
+              aria-describedby="code-hint"
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+            />
+            <small id="code-hint">It expires in 10 minutes.</small>
+          </label>
+
+          {error && (
+            <p className="form-error" role="alert">
+              {error}
+            </p>
+          )}
+
+          <div className="dialog-actions">
+            <button type="button" className="button" onClick={() => setCodeFor(null)}>
+              Back
+            </button>
+            <button type="submit" className="button primary" disabled={busy}>
+              Confirm and sign up
+            </button>
+          </div>
+
+          <p className="switch-mode">
+            No SMS?{" "}
+            <button type="button" className="link" onClick={resend}>
+              Send a new code
+            </button>
+          </p>
+        </form>
+      </dialog>
+    );
+  }
 
   return (
     <dialog ref={dialog} className="auth-dialog" aria-labelledby="auth-title" onCancel={onClose}>
@@ -66,7 +142,9 @@ export default function AuthDialog({ mode, onModeChange, onClose, auth, nairobiN
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
               />
-              <small id="phone-hint">Your alerts are sent here by SMS. You also log in with it.</small>
+              <small id="phone-hint">
+                We'll text you a code to confirm it. Your alerts are sent here, and you log in with it.
+              </small>
             </label>
             <label>
               Email (optional)
@@ -131,7 +209,7 @@ export default function AuthDialog({ mode, onModeChange, onClose, auth, nairobiN
             Cancel
           </button>
           <button type="submit" className="button primary" disabled={busy}>
-            {signingUp ? "Sign up" : "Log in"}
+            {signingUp ? "Send code" : "Log in"}
           </button>
         </div>
 

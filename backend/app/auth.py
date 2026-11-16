@@ -15,6 +15,7 @@ from app.config import ADMIN_EMAIL, ADMIN_PASSWORD, JWT_EXPIRE_MINUTES, JWT_SECR
 from app.db import SessionLocal, User
 from app.ml_client import location_names
 from app.realtime import clear_failed_logins, record_failed_login, too_many_failed_logins
+from app.otp import CODE_TTL_SECONDS, check_code, send_code
 from app.sms import normalise_phone
 
 log = logging.getLogger("uvicorn.error")
@@ -47,8 +48,20 @@ class HomeRequest(BaseModel):
     home_location: str | None
 
 
-class ContactRequest(BaseModel):
-    phone: str | None = Field(default=None, max_length=32)
+class CodeRequest(BaseModel):
+    phone: str = Field(max_length=32)
+    code: str = Field(max_length=12)
+
+
+class PhoneRequest(BaseModel):
+    phone: str = Field(max_length=32)
+
+
+class PhoneCodeRequest(BaseModel):
+    code: str = Field(max_length=12)
+
+
+class EmailRequest(BaseModel):
     email: EmailStr | None = None
 
 
@@ -177,23 +190,46 @@ def current_admin(user: User = Depends(current_user)):
     return user
 
 
-@router.post("/auth/register", status_code=201)
-def register(request: RegisterRequest):
-    """Every account made here is an ordinary user. Only seed_admin() makes the admin."""
-    check_location(request.home_location)
-    phone = required_phone(request.phone)
-    email = normalise_email(request.email)
+def client_address(request):
+    # nginx sets X-Real-IP; without it (direct calls) the connection's own address is used
+    return request.headers.get("x-real-ip") or request.client.host
+
+
+@router.post("/auth/register", status_code=202)
+def register(body: RegisterRequest, request: Request):
+    """Sign-up, step 1: check the details and text a one-time code to the phone number.
+    Nothing is saved as an account until the code is confirmed in step 2."""
+    check_location(body.home_location)
+    phone = required_phone(body.phone)
+    email = normalise_email(body.email)
+    with SessionLocal() as session:
+        check_contact_free(session, phone, email)
+    details = {
+        "email": email,
+        "password_hash": hasher.hash(body.password),  # the password itself is never stored
+        "home_location": body.home_location,
+    }
+    send_code(f"otp-signup:{phone}", phone, client_address(request), details)
+    return {"phone": phone, "expires_in_seconds": CODE_TTL_SECONDS}
+
+
+@router.post("/auth/register/verify", status_code=201)
+def verify_register(body: CodeRequest):
+    """Sign-up, step 2: the right code creates the account and logs in.
+    Every account made here is an ordinary user. Only seed_admin() makes the admin."""
+    phone = required_phone(body.phone)
+    details = check_code(f"otp-signup:{phone}", body.code)["payload"]
     user = User(
         phone=phone,
-        email=email,
-        password_hash=hasher.hash(request.password),
-        home_location=request.home_location,
+        email=details["email"],
+        password_hash=details["password_hash"],
+        home_location=details["home_location"],
         is_admin=False,
         last_login_at=func.now(),  # signing up also logs the user in
     )
     try:
         with SessionLocal.begin() as session:
-            check_contact_free(session, phone, email)
+            check_contact_free(session, phone, user.email)  # someone may have taken them meanwhile
             session.add(user)
             session.flush()
             return login_response(user)
@@ -211,7 +247,7 @@ def login(body: LoginRequest, request: Request):
         identifier, column = normalise_phone(text) or text, User.phone
     # nginx sets X-Real-IP. Limiting by login and address together means an attacker elsewhere
     # can't lock someone out of their own account.
-    limit_key = f"{identifier}:{request.headers.get('x-real-ip') or request.client.host}"
+    limit_key = f"{identifier}:{client_address(request)}"
     if too_many_failed_logins(limit_key):
         raise HTTPException(status_code=429, detail="Too many failed attempts. Try again in 15 minutes.")
 
@@ -243,25 +279,46 @@ def update_home(request: HomeRequest, user: User = Depends(current_user)):
         return user_data(stored)
 
 
-@router.put("/me/contact")
-def update_contact(request: ContactRequest, user: User = Depends(current_user)):
-    """Change the phone number and email. Users need a phone number; the admin's email is fixed."""
-    phone = normalise_phone(request.phone) if request.phone else None
-    if request.phone and phone is None:
-        required_phone(request.phone)  # raises the friendly error
-    email = normalise_email(request.email)
-    if user.is_admin:
-        email = user.email  # set in .env, not here
-    elif phone is None:
-        raise HTTPException(status_code=422, detail="A phone number is required for SMS alerts.")
+@router.post("/me/phone", status_code=202)
+def start_phone_change(body: PhoneRequest, request: Request, user: User = Depends(current_user)):
+    """Changing the phone number, step 1: text a code to the new number."""
+    phone = required_phone(body.phone)
+    if phone == user.phone:
+        raise HTTPException(status_code=409, detail="That's already your number.")
+    with SessionLocal() as session:
+        check_contact_free(session, phone, None, user=user)
+    send_code(f"otp-phone:{user.id}", phone, client_address(request), {})
+    return {"phone": phone, "expires_in_seconds": CODE_TTL_SECONDS}
+
+
+@router.post("/me/phone/verify")
+def verify_phone_change(body: PhoneCodeRequest, user: User = Depends(current_user)):
+    """Changing the phone number, step 2: the right code saves the new number."""
+    phone = check_code(f"otp-phone:{user.id}", body.code)["phone"]
     try:
         with SessionLocal.begin() as session:
-            check_contact_free(session, phone, email, user=user)
+            check_contact_free(session, phone, None, user=user)
             stored = session.get(User, user.id)
-            stored.phone, stored.email = phone, email
+            stored.phone = phone
             return user_data(stored)
     except IntegrityError:
-        raise HTTPException(status_code=409, detail="An account with this phone number or email already exists.")
+        raise HTTPException(status_code=409, detail="An account with this phone number already exists.")
+
+
+@router.put("/me/email")
+def update_email(body: EmailRequest, user: User = Depends(current_user)):
+    """Add, change or remove the optional email. The admin's email is set in .env."""
+    if user.is_admin:
+        raise HTTPException(status_code=409, detail="The admin email is set in the .env file.")
+    email = normalise_email(body.email)
+    try:
+        with SessionLocal.begin() as session:
+            check_contact_free(session, None, email, user=user)
+            stored = session.get(User, user.id)
+            stored.email = email
+            return user_data(stored)
+    except IntegrityError:
+        raise HTTPException(status_code=409, detail="An account with this email already exists.")
 
 
 @router.post("/me/password", status_code=204)

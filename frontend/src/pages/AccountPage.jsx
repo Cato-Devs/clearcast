@@ -38,14 +38,149 @@ function HomeForm() {
   );
 }
 
-function ContactForm() {
+function PhoneForm() {
   const { auth } = useApp();
   const { user } = auth;
-  const [phone, setPhone] = useState(user.phone ?? "");
+  const [phone, setPhone] = useState("");
+  const [codeFor, setCodeFor] = useState(null); // the new number a code was sent to
+  const [code, setCode] = useState("");
+  const [message, setMessage] = useState(null);
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const run = async (action) => {
+    setBusy(true);
+    setMessage(null);
+    setError(null);
+    try {
+      await action();
+    } catch (failure) {
+      if (failure.status !== 401) setError(errorText(failure));
+    }
+    setBusy(false);
+  };
+
+  const sendCode = () =>
+    run(async () => {
+      const sentTo = await auth.startPhoneChange(phone);
+      setCodeFor(sentTo);
+      setCode("");
+      setMessage(`We sent a 6-digit code by SMS to ${sentTo}.`);
+    });
+
+  const confirm = (e) => {
+    e.preventDefault();
+    run(async () => {
+      await auth.verifyPhoneChange(code);
+      setCodeFor(null);
+      setPhone("");
+      setMessage("Mobile number changed.");
+    });
+  };
+
+  return (
+    <section className="card">
+      <h2>Mobile number</h2>
+      {user.phone ? (
+        <p>
+          Alerts are sent by SMS to <strong>{user.phone}</strong>.
+        </p>
+      ) : (
+        !user.is_admin && (
+          <p className="form-error" role="alert">
+            Add your mobile number to get your alerts by SMS.
+          </p>
+        )
+      )}
+      {codeFor ? (
+        <form className="form" onSubmit={confirm}>
+          <label>
+            Code sent to {codeFor}
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="[0-9]{6}"
+              maxLength={6}
+              required
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+            />
+            <small>It expires in 10 minutes.</small>
+          </label>
+          {error && (
+            <p className="form-error" role="alert">
+              {error}
+            </p>
+          )}
+          {message && <p role="status">{message}</p>}
+          <div className="dialog-actions start">
+            <button type="submit" className="button primary" disabled={busy}>
+              Confirm
+            </button>
+            <button type="button" className="button" disabled={busy} onClick={sendCode}>
+              Send a new code
+            </button>
+            <button type="button" className="button" onClick={() => setCodeFor(null)}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      ) : (
+        <form
+          className="form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            sendCode();
+          }}
+        >
+          <label>
+            {user.phone ? "New mobile number" : "Mobile number"}
+            <input
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              required
+              placeholder="0712 345 678"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
+            <small>We'll text a code to this number to confirm it's yours.</small>
+          </label>
+          {error && (
+            <p className="form-error" role="alert">
+              {error}
+            </p>
+          )}
+          {message && <p role="status">{message}</p>}
+          <div className="dialog-actions start">
+            <button type="submit" className="button primary" disabled={busy}>
+              Send code
+            </button>
+          </div>
+        </form>
+      )}
+    </section>
+  );
+}
+
+function EmailForm() {
+  const { auth } = useApp();
+  const { user } = auth;
   const [email, setEmail] = useState(user.email ?? "");
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+
+  if (user.is_admin) {
+    return (
+      <section className="card">
+        <h2>Email</h2>
+        <p>{user.email}</p>
+        <p className="hint">The admin email and password are set in the .env file.</p>
+      </section>
+    );
+  }
 
   const submit = async (e) => {
     e.preventDefault();
@@ -53,47 +188,24 @@ function ContactForm() {
     setMessage(null);
     setError(null);
     try {
-      await auth.setContact(phone, user.is_admin ? user.email : email);
-      setMessage("Saved.");
+      await auth.setEmail(email);
+      setMessage(email.trim() ? "Saved." : "Email removed.");
     } catch (failure) {
-      if (failure.status === 401) return;
-      setError(Array.isArray(failure.detail) ? "Enter a valid email address, or leave it empty." : errorText(failure));
+      if (failure.status !== 401) {
+        setError(Array.isArray(failure.detail) ? "Enter a valid email address, or leave it empty." : errorText(failure));
+      }
     }
     setBusy(false);
   };
 
   return (
     <section className="card">
-      <h2>Contact details</h2>
-      {!user.phone && !user.is_admin && (
-        <p className="form-error" role="alert">
-          Add your mobile number to get your alerts by SMS.
-        </p>
-      )}
+      <h2>Email (optional)</h2>
       <form className="form" onSubmit={submit}>
         <label>
-          Mobile number{user.is_admin ? " (optional)" : ""}
-          <input
-            type="tel"
-            inputMode="tel"
-            autoComplete="tel"
-            required={!user.is_admin}
-            placeholder="0712 345 678"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-          />
-          <small>Every alert is sent here by SMS, and shown in the app.</small>
-        </label>
-        <label>
-          Email {user.is_admin ? "(set in the .env file)" : "(optional)"}
-          <input
-            type="email"
-            autoComplete="email"
-            disabled={user.is_admin}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          {!user.is_admin && <small>Needed only if you want some alerts by email too.</small>}
+          Email
+          <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <small>Needed only if you want some alerts by email too. Leave empty to remove it.</small>
         </label>
         {error && (
           <p className="form-error" role="alert">
@@ -103,7 +215,7 @@ function ContactForm() {
         {message && <p role="status">{message}</p>}
         <div className="dialog-actions start">
           <button type="submit" className="button primary" disabled={busy}>
-            Save contact details
+            Save email
           </button>
         </div>
       </form>
@@ -196,7 +308,8 @@ export default function AccountPage() {
           </button>
         </div>
       </section>
-      <ContactForm />
+      <PhoneForm />
+      <EmailForm />
       <HomeForm />
       <PasswordForm />
     </div>

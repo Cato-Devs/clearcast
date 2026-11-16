@@ -65,10 +65,16 @@ export function useAuth() {
     [finishLogin],
   );
 
-  const register = useCallback(
-    async ({ phone, email, password, homeLocation }) => {
-      const body = { phone, email: email.trim() || null, password, home_location: homeLocation || null };
-      finishLogin(await api("/api/auth/register", { method: "POST", body }));
+  /** Sign-up, step 1: sends a code by SMS. Returns the number as the server stored it. */
+  const startRegister = useCallback(async ({ phone, email, password, homeLocation }) => {
+    const body = { phone, email: email.trim() || null, password, home_location: homeLocation || null };
+    return (await api("/api/auth/register", { method: "POST", body })).phone;
+  }, []);
+
+  /** Sign-up, step 2: the right code creates the account and logs in. */
+  const verifyRegister = useCallback(
+    async (phone, code) => {
+      finishLogin(await api("/api/auth/register/verify", { method: "POST", body: { phone, code } }));
     },
     [finishLogin],
   );
@@ -93,10 +99,22 @@ export function useAuth() {
     [request],
   );
 
-  const setContact = useCallback(
-    async (phone, email) => {
-      const body = { phone: phone.trim() || null, email: email.trim() || null };
-      setUser(await request("/api/me/contact", { method: "PUT", body }));
+  const setEmail = useCallback(
+    async (email) => {
+      setUser(await request("/api/me/email", { method: "PUT", body: { email: email.trim() || null } }));
+    },
+    [request],
+  );
+
+  /** Changing the phone number: step 1 texts a code to the new number, step 2 checks it. */
+  const startPhoneChange = useCallback(
+    async (phone) => (await request("/api/me/phone", { method: "POST", body: { phone } })).phone,
+    [request],
+  );
+
+  const verifyPhoneChange = useCallback(
+    async (code) => {
+      setUser(await request("/api/me/phone/verify", { method: "POST", body: { code } }));
     },
     [request],
   );
@@ -106,5 +124,18 @@ export function useAuth() {
     setSessionEnded(false);
   }, [clear]);
 
-  return { token, user, sessionEnded, login, register, logout, setHome, setContact, request };
+  return {
+    token,
+    user,
+    sessionEnded,
+    login,
+    startRegister,
+    verifyRegister,
+    logout,
+    setHome,
+    setEmail,
+    startPhoneChange,
+    verifyPhoneChange,
+    request,
+  };
 }
